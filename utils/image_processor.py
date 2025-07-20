@@ -168,13 +168,13 @@ class ImageProcessor:
         except Exception as e:
             raise ImageProcessingError(f"Failed to split image into grid: {e}")
     
-    def resize_for_emoji(self, image: np.ndarray, size: int = 512) -> np.ndarray:
+    def resize_for_emoji(self, image: np.ndarray, size: int = 100) -> np.ndarray:
         """
-        Resize image to Telegram emoji standard (512x512)
+        Resize image to Telegram custom emoji standard (100x100)
         
         Args:
             image: Input image
-            size: Target size (default 512)
+            size: Target size (default 100 for custom emoji)
             
         Returns:
             Resized image

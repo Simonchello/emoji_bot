@@ -85,13 +85,13 @@ class EmojiGenerator:
         except Exception as e:
             raise ImageProcessingError(f"Failed to create emoji pack: {e}")
     
-    def optimize_emoji_size(self, image: np.ndarray, target_size: int = 512) -> np.ndarray:
+    def optimize_emoji_size(self, image: np.ndarray, target_size: int = 100) -> np.ndarray:
         """
-        Optimize image size and quality for Telegram emoji
+        Optimize image size and quality for Telegram custom emoji
         
         Args:
             image: Input image
-            target_size: Target size (512x512 for Telegram)
+            target_size: Target size (100x100 for custom emoji)
             
         Returns:
             Optimized image

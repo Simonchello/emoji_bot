@@ -130,16 +130,17 @@ class StickerPackManager:
             if not stickers:
                 raise ProcessingError("No valid emoji files found")
             
-            # Create the sticker set
+            # Create the custom emoji set
             success = await self.bot.create_new_sticker_set(
                 user_id=user_id,
                 name=pack_name,
                 title=pack_title,
-                stickers=stickers
+                stickers=stickers,
+                sticker_type="custom_emoji"
             )
             
             if success:
-                pack_link = f"https://t.me/addstickers/{pack_name}"
+                pack_link = f"https://t.me/addemoji/{pack_name}"
                 
                 result = {
                     "success": True,
@@ -254,7 +255,7 @@ class StickerPackManager:
                 "name": sticker_set.name,
                 "title": sticker_set.title,
                 "sticker_count": len(sticker_set.stickers),
-                "link": f"https://t.me/addstickers/{sticker_set.name}"
+                "link": f"https://t.me/addemoji/{sticker_set.name}"
             }
             
         except Exception as e:
@@ -323,17 +324,17 @@ class StickerPackManager:
             if image is None:
                 raise ProcessingError(f"Could not load image: {image_path}")
             
-            # Ensure image is 512x512
-            if image.shape[:2] != (512, 512):
-                image = cv2.resize(image, (512, 512), interpolation=cv2.INTER_LANCZOS4)
+            # Ensure image is 100x100 for custom emoji (not 512x512 for stickers)
+            if image.shape[:2] != (100, 100):
+                image = cv2.resize(image, (100, 100), interpolation=cv2.INTER_LANCZOS4)
             
             # Convert to RGBA if needed (for PNG with transparency)
             if len(image.shape) == 3 and image.shape[2] == 3:
                 # BGR to BGRA
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA)
             
-            # Try different compression levels to stay under 512KB
-            max_file_size = 500 * 1024  # 500KB to be safe
+            # Try different compression levels to stay under 512KB (much smaller for 100x100 images)
+            max_file_size = 256 * 1024  # 256KB to be safe for custom emoji
             
             # Start with high compression
             for compression in [9, 8, 7, 6, 5, 4, 3]:
@@ -386,4 +387,4 @@ class StickerPackManager:
         Returns:
             Direct link to add stickers
         """
-        return f"https://t.me/addstickers/{pack_name}"
+        return f"https://t.me/addemoji/{pack_name}"

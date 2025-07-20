@@ -169,12 +169,14 @@ async def start_image_processing(callback: CallbackQuery, state: FSMContext, bot
 • Grid: `{settings.grid_x}×{settings.grid_y}`
 • Quality: `{settings.quality_level.title()}`
 
-🎉 **Your Telegram sticker pack is ready!**
+🎉 **Your Telegram custom emoji pack is ready!**
 
 **Pack:** `{pack_result["pack_title"]}`
 **Link:** {pack_result["pack_link"]}
 
 Click the link above to add your custom emoji pack to Telegram! 🚀
+
+*Note: Custom emojis require Telegram Premium to add, but everyone can see them once added.*
 """
         else:
             success_text = f"""
@@ -185,7 +187,7 @@ Click the link above to add your custom emoji pack to Telegram! 🚀
 • Grid: `{settings.grid_x}×{settings.grid_y}`
 • Quality: `{settings.quality_level.title()}`
 
-⚠️ **Sticker pack creation failed:** `{pack_result.get("error", "Unknown error")}`
+⚠️ **Custom emoji pack creation failed:** `{pack_result.get("error", "Unknown error")}`
 
 You can still download the ZIP file with your emojis below.
 """
@@ -337,14 +339,16 @@ async def add_sticker_pack_to_telegram(callback: CallbackQuery, state: FSMContex
     pack_title = pack_result["pack_title"]
     
     message_text = f"""
-🎯 **Add Your Sticker Pack to Telegram**
+🎯 **Add Your Custom Emoji Pack to Telegram**
 
 **Pack Name:** `{pack_title}`
 
 **How to add:**
 1. Click the link below
-2. Press "Add Stickers" in Telegram
+2. Press "Add Emoji Pack" in Telegram
 3. Start using your custom emojis!
+
+**Note:** You need Telegram Premium to add custom emoji packs.
 
 **Link:** {pack_link}
 
@@ -355,7 +359,7 @@ async def add_sticker_pack_to_telegram(callback: CallbackQuery, state: FSMContex
     keyboard = [
         [
             InlineKeyboardButton(
-                text="🎯 Add Sticker Pack to Telegram",
+                text="🎯 Add Emoji Pack to Telegram",
                 url=pack_link
             )
         ],
@@ -369,7 +373,7 @@ async def add_sticker_pack_to_telegram(callback: CallbackQuery, state: FSMContex
         reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard),
         parse_mode="Markdown"
     )
-    await callback.answer("🎯 Sticker pack link ready!")
+    await callback.answer("🎯 Custom emoji pack link ready!")
 
 
 @router.callback_query(F.data == "back_to_results")
@@ -382,12 +386,14 @@ async def back_to_results(callback: CallbackQuery, state: FSMContext):
         message_text = f"""
 ✅ **Processing Complete!**
 
-🎉 **Your Telegram sticker pack is ready!**
+🎉 **Your Telegram custom emoji pack is ready!**
 
 **Pack:** `{pack_result["pack_title"]}`
 **Link:** {pack_result["pack_link"]}
 
 Click the link above to add your custom emoji pack to Telegram! 🚀
+
+*Note: Custom emojis require Telegram Premium to add, but everyone can see them once added.*
 """
     else:
         message_text = "✅ **Processing Complete!**\n\nYour emojis are ready for download."

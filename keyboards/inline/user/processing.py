@@ -84,7 +84,7 @@ def get_processing_complete_keyboard(has_sticker_pack: bool = False) -> InlineKe
     
     if has_sticker_pack:
         keyboard.append([
-            InlineKeyboardButton(text="🎯 Add Sticker Pack", callback_data="add_sticker_pack")
+            InlineKeyboardButton(text="🎯 Add Emoji Pack", callback_data="add_sticker_pack")
         ])
     
     keyboard.extend([

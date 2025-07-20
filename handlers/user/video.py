@@ -220,13 +220,15 @@ async def start_video_processing(callback: CallbackQuery, state: FSMContext, bot
 • Grid: `{settings.grid_x}×{settings.grid_y}` per frame
 • Quality: `{settings.quality_level.title()}`
 
-🎉 **Your Telegram sticker pack is ready!**
-*(Using first frame as sticker pack)*
+🎉 **Your Telegram custom emoji pack is ready!**
+*(Using first frame as emoji pack)*
 
 **Pack:** `{pack_result["pack_title"]}`
 **Link:** {pack_result["pack_link"]}
 
 Click the link above to add your custom emoji pack to Telegram! 🚀
+
+*Note: Custom emojis require Telegram Premium to add, but everyone can see them once added.*
 """
         else:
             success_text = f"""
@@ -238,7 +240,7 @@ Click the link above to add your custom emoji pack to Telegram! 🚀
 • Grid: `{settings.grid_x}×{settings.grid_y}` per frame
 • Quality: `{settings.quality_level.title()}`
 
-⚠️ **Sticker pack creation failed:** `{pack_result.get("error", "Unknown error")}`
+⚠️ **Custom emoji pack creation failed:** `{pack_result.get("error", "Unknown error")}`
 
 You can still download the ZIP file with all your emojis below.
 """
