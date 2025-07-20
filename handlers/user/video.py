@@ -13,7 +13,7 @@ from utils import (
     validate_file_format, validate_file_size
 )
 from exceptions import VideoProcessingError, FileSizeError, FileFormatError
-from config import load_config
+from config import load_config, CACHE_DIR
 from .start import user_settings
 
 logger = logging.getLogger(__name__)
@@ -179,7 +179,7 @@ async def start_video_processing(callback: CallbackQuery, state: FSMContext, bot
         # Generate emoji packs for each frame
         progress_tracker.update(1, "Generating emoji packs...")
         
-        output_dir = config.CACHE_DIR / f"user_{user_id}_video_output"
+        output_dir = CACHE_DIR / f"user_{user_id}_video_output"
         output_dir.mkdir(exist_ok=True)
         
         for frame_idx, emoji_cells in enumerate(frame_sequences):

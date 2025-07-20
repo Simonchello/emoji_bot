@@ -13,7 +13,7 @@ from utils import (
     validate_file_format, validate_file_size
 )
 from exceptions import ImageProcessingError, FileSizeError, FileFormatError
-from config import load_config
+from config import load_config, CACHE_DIR
 from .start import user_settings
 
 logger = logging.getLogger(__name__)
@@ -136,7 +136,8 @@ async def start_image_processing(callback: CallbackQuery, state: FSMContext, bot
         
         # Generate emoji pack
         pack_name = f"emoji_pack_{user_id}"
-        output_dir = config.CACHE_DIR / f"user_{user_id}_output"
+        output_dir = CACHE_DIR / f"user_{user_id}_output"
+        output_dir.mkdir(parents=True, exist_ok=True)
         
         saved_files = emoji_generator.create_emoji_pack(
             emoji_cells, pack_name, user_id, output_dir, progress_tracker

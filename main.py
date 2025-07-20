@@ -97,7 +97,8 @@ async def on_shutdown(bot: Bot):
         
         # Cleanup cache files older than 1 hour
         from utils import FileManager
-        file_manager = FileManager(bot)
+        config = load_config()
+        file_manager = FileManager(bot, config.max_file_size_mb)
         cleaned_count, freed_size = await file_manager.cleanup_cache(max_age_hours=1)
         if cleaned_count > 0:
             logging.info(f"Cleaned up {cleaned_count} cache files ({freed_size/(1024*1024):.1f}MB)")
@@ -112,7 +113,8 @@ async def periodic_cleanup(bot: Bot, interval_hours: int = 1):
     """Periodic cache cleanup task"""
     from utils import FileManager
     
-    file_manager = FileManager(bot)
+    config = load_config()
+    file_manager = FileManager(bot, config.max_file_size_mb)
     
     while True:
         try:
