@@ -78,12 +78,19 @@ def get_processing_progress_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
-def get_processing_complete_keyboard() -> InlineKeyboardMarkup:
+def get_processing_complete_keyboard(has_sticker_pack: bool = False) -> InlineKeyboardMarkup:
     """Get processing complete keyboard"""
-    keyboard = [
+    keyboard = []
+    
+    if has_sticker_pack:
+        keyboard.append([
+            InlineKeyboardButton(text="🎯 Add Sticker Pack", callback_data="add_sticker_pack")
+        ])
+    
+    keyboard.extend([
         [
             InlineKeyboardButton(text="💾 Download ZIP", callback_data="download_zip"),
-            InlineKeyboardButton(text="📱 Send to Telegram", callback_data="send_stickers")
+            InlineKeyboardButton(text="📱 Send Individual", callback_data="send_stickers")
         ],
         [
             InlineKeyboardButton(text="🔄 Process Another", callback_data="process_another"),
@@ -96,6 +103,6 @@ def get_processing_complete_keyboard() -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(text="🏠 Main Menu", callback_data="main_menu")
         ]
-    ]
+    ])
     
     return InlineKeyboardMarkup(inline_keyboard=keyboard)

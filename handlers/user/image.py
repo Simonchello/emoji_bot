@@ -2,14 +2,14 @@ import asyncio
 import logging
 from pathlib import Path
 from aiogram import Router, F, Bot
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
 
 from filters import IsImageFilter, FileSizeFilter, SupportedFormatFilter
 from keyboards import get_processing_confirmation_keyboard, get_processing_complete_keyboard
 from states import UserStates
 from utils import (
-    ImageProcessor, EmojiGenerator, FileManager, ProgressTracker,
+    ImageProcessor, EmojiGenerator, FileManager, ProgressTracker, StickerPackManager,
     validate_file_format, validate_file_size
 )
 from exceptions import ImageProcessingError, FileSizeError, FileFormatError
@@ -147,29 +147,60 @@ async def start_image_processing(callback: CallbackQuery, state: FSMContext, bot
         zip_path = output_dir / f"{pack_name}.zip"
         emoji_generator.create_pack_archive(saved_files, pack_name, zip_path)
         
-        # Success message
-        success_text = f"""
+        # Create Telegram sticker pack
+        sticker_manager = StickerPackManager(bot)
+        user_name = callback.from_user.first_name or "User"
+        
+        pack_result = await sticker_manager.create_sticker_pack(
+            user_id=user_id,
+            user_name=user_name,
+            emoji_files=saved_files,
+            grid_size=(settings.grid_x, settings.grid_y),
+            pack_type="emoji"
+        )
+        
+        # Success message with sticker pack link
+        if pack_result["success"]:
+            success_text = f"""
 ✅ **Processing Complete!**
 
 **Results:**
 • Created: `{len(saved_files)}` emojis
 • Grid: `{settings.grid_x}×{settings.grid_y}`
 • Quality: `{settings.quality_level.title()}`
-• ZIP file: `{zip_path.name}`
 
-Your emoji pack is ready! 🎉
+🎉 **Your Telegram sticker pack is ready!**
+
+**Pack:** `{pack_result["pack_title"]}`
+**Link:** {pack_result["pack_link"]}
+
+Click the link above to add your custom emoji pack to Telegram! 🚀
+"""
+        else:
+            success_text = f"""
+✅ **Processing Complete!**
+
+**Results:**
+• Created: `{len(saved_files)}` emojis
+• Grid: `{settings.grid_x}×{settings.grid_y}`
+• Quality: `{settings.quality_level.title()}`
+
+⚠️ **Sticker pack creation failed:** `{pack_result.get("error", "Unknown error")}`
+
+You can still download the ZIP file with your emojis below.
 """
         
         # Store results in state
         await state.update_data(
             emoji_files=[str(f) for f in saved_files],
             zip_path=str(zip_path),
-            pack_name=pack_name
+            pack_name=pack_name,
+            sticker_pack_result=pack_result
         )
         
         await callback.message.edit_text(
             success_text,
-            reply_markup=get_processing_complete_keyboard(),
+            reply_markup=get_processing_complete_keyboard(has_sticker_pack=pack_result["success"]),
             parse_mode="Markdown"
         )
         
@@ -287,6 +318,83 @@ async def process_another_image(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.message.edit_text(
         "🖼️ **Ready for another image!**\n\nSend me your next image to process.",
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "add_sticker_pack")
+async def add_sticker_pack_to_telegram(callback: CallbackQuery, state: FSMContext):
+    """Provide sticker pack link for adding to Telegram"""
+    data = await state.get_data()
+    pack_result = data.get('sticker_pack_result')
+    
+    if not pack_result or not pack_result.get("success"):
+        await callback.answer("❌ Sticker pack not available", show_alert=True)
+        return
+    
+    pack_link = pack_result["pack_link"]
+    pack_title = pack_result["pack_title"]
+    
+    message_text = f"""
+🎯 **Add Your Sticker Pack to Telegram**
+
+**Pack Name:** `{pack_title}`
+
+**How to add:**
+1. Click the link below
+2. Press "Add Stickers" in Telegram
+3. Start using your custom emojis!
+
+**Link:** {pack_link}
+
+🎉 Enjoy your personalized emoji pack!
+"""
+    
+    # Create inline button with direct link
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                text="🎯 Add Sticker Pack to Telegram",
+                url=pack_link
+            )
+        ],
+        [
+            InlineKeyboardButton(text="🔙 Back", callback_data="back_to_results")
+        ]
+    ]
+    
+    await callback.message.edit_text(
+        message_text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard),
+        parse_mode="Markdown"
+    )
+    await callback.answer("🎯 Sticker pack link ready!")
+
+
+@router.callback_query(F.data == "back_to_results")
+async def back_to_results(callback: CallbackQuery, state: FSMContext):
+    """Go back to processing results"""
+    data = await state.get_data()
+    pack_result = data.get('sticker_pack_result', {})
+    
+    if pack_result.get("success"):
+        message_text = f"""
+✅ **Processing Complete!**
+
+🎉 **Your Telegram sticker pack is ready!**
+
+**Pack:** `{pack_result["pack_title"]}`
+**Link:** {pack_result["pack_link"]}
+
+Click the link above to add your custom emoji pack to Telegram! 🚀
+"""
+    else:
+        message_text = "✅ **Processing Complete!**\n\nYour emojis are ready for download."
+    
+    await callback.message.edit_text(
+        message_text,
+        reply_markup=get_processing_complete_keyboard(has_sticker_pack=pack_result.get("success", False)),
         parse_mode="Markdown"
     )
     await callback.answer()

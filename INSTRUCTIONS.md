@@ -8,7 +8,8 @@ Transform your images and videos into custom emoji packs for Telegram! This bot 
 2. **Choose grid size** - Select how many emojis to create (e.g., 2×2, 3×3, 1×5)
 3. **Pick adaptation method** - Choose how to fit your image (Pad, Stretch, or Crop)
 4. **Send your media** - Upload an image or video
-5. **Get your emojis** - Download as ZIP or individual files
+5. **Get your sticker pack** - Automatically created and ready to add to Telegram!
+6. **Alternative options** - Download as ZIP or individual files
 
 ## 📋 Bot Commands
 
@@ -91,7 +92,8 @@ Transform your images and videos into custom emoji packs for Telegram! This bot 
 4. **Send your image** (JPG, PNG, WebP, BMP, TIFF up to 50MB)
 5. **Review settings** and click "✅ Start Processing"
 6. **Wait for processing** (usually 10-60 seconds)
-7. **Download results:**
+7. **Get your results:**
+   - 🎯 **Telegram Sticker Pack** - Direct link to add to Telegram
    - 📦 ZIP file with all emojis
    - 📱 Individual emoji files
    - 👁️ Preview in chat
@@ -102,7 +104,8 @@ Transform your images and videos into custom emoji packs for Telegram! This bot 
 2. **Send your video** (MP4, AVI, MOV, WebM, MKV up to 50MB, max 5 minutes)
 3. **Bot extracts key frames** automatically
 4. **Each frame becomes an emoji set**
-5. **Download organized by frame** or as complete ZIP
+5. **First frame becomes Telegram sticker pack**
+6. **Download organized by frame** or as complete ZIP
 
 ## 🎯 Pro Tips
 
@@ -223,9 +226,26 @@ Transform your images and videos into custom emoji packs for Telegram! This bot 
 - **Color palette:** 1×8 for color schemes
 - **Texture samples:** 3×3 for material references
 
-## 🔗 Telegram Sticker Integration
+## 🔗 Automatic Telegram Sticker Packs
 
-### Creating Sticker Packs
+### How It Works
+The bot **automatically creates** a Telegram sticker pack for you! No manual setup required.
+
+### After Processing
+1. **Bot creates sticker pack** automatically
+2. **You get a direct link** like `t.me/addstickers/pack_123_abc_by_yourbot`  
+3. **Click "🎯 Add Sticker Pack"** button
+4. **Telegram opens** with your custom pack ready to add
+5. **Start using** your emojis immediately!
+
+### Features
+- **Instant creation** - No waiting or manual steps
+- **Unique pack names** - Each user gets their own pack
+- **Direct integration** - Works seamlessly with Telegram
+- **High quality** - All emojis are 512×512 PNG format
+
+### Manual Sticker Pack Creation (Alternative)
+If you prefer the traditional method:
 1. Download emoji PNG files from bot
 2. Open Telegram and message [@Stickers](https://t.me/stickers)
 3. Send `/newpack`
@@ -233,8 +253,8 @@ Transform your images and videos into custom emoji packs for Telegram! This bot 
 5. Set emojis and publish pack
 
 ### Best Practices
-- **512×512 PNG** format (bot provides this)
-- **Transparent backgrounds** (use background removal)
+- **512×512 PNG** format (bot provides this automatically)
+- **Transparent backgrounds** (enable background removal option)
 - **Clear, simple designs** work best as stickers
 - **Consistent style** across emoji set
 

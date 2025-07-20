@@ -2,6 +2,7 @@ from .image_processor import ImageProcessor
 from .video_processor import VideoProcessor
 from .emoji_generator import EmojiGenerator
 from .file_manager import FileManager
+from .sticker_pack_manager import StickerPackManager
 from .validation import (
     validate_grid_size,
     validate_adaptation_method,
@@ -23,6 +24,7 @@ __all__ = [
     "VideoProcessor", 
     "EmojiGenerator",
     "FileManager",
+    "StickerPackManager",
     "validate_grid_size",
     "validate_adaptation_method",
     "validate_file_format",

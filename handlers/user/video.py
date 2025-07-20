@@ -9,7 +9,7 @@ from filters import IsVideoFilter, FileSizeFilter, SupportedFormatFilter
 from keyboards import get_processing_confirmation_keyboard, get_processing_complete_keyboard
 from states import UserStates
 from utils import (
-    VideoProcessor, ImageProcessor, EmojiGenerator, FileManager, ProgressTracker,
+    VideoProcessor, ImageProcessor, EmojiGenerator, FileManager, ProgressTracker, StickerPackManager,
     validate_file_format, validate_file_size
 )
 from exceptions import VideoProcessingError, FileSizeError, FileFormatError
@@ -194,8 +194,24 @@ async def start_video_processing(callback: CallbackQuery, state: FSMContext, bot
         master_zip_path = output_dir / f"video_emoji_pack_{user_id}.zip"
         emoji_generator.create_pack_archive(all_emoji_files, f"video_pack_{user_id}", master_zip_path)
         
-        # Success message
-        success_text = f"""
+        # Create Telegram sticker pack for first frame
+        sticker_manager = StickerPackManager(bot)
+        user_name = callback.from_user.first_name or "User"
+        
+        # Use first frame emojis for the sticker pack (Telegram has limits)
+        first_frame_emojis = all_emoji_files[:settings.grid_x * settings.grid_y]
+        
+        pack_result = await sticker_manager.create_sticker_pack(
+            user_id=user_id,
+            user_name=user_name,
+            emoji_files=first_frame_emojis,
+            grid_size=(settings.grid_x, settings.grid_y),
+            pack_type="video"
+        )
+        
+        # Success message with sticker pack link
+        if pack_result["success"]:
+            success_text = f"""
 ✅ **Video Processing Complete!**
 
 **Results:**
@@ -204,7 +220,27 @@ async def start_video_processing(callback: CallbackQuery, state: FSMContext, bot
 • Grid: `{settings.grid_x}×{settings.grid_y}` per frame
 • Quality: `{settings.quality_level.title()}`
 
-Your video emoji collection is ready! 🎉
+🎉 **Your Telegram sticker pack is ready!**
+*(Using first frame as sticker pack)*
+
+**Pack:** `{pack_result["pack_title"]}`
+**Link:** {pack_result["pack_link"]}
+
+Click the link above to add your custom emoji pack to Telegram! 🚀
+"""
+        else:
+            success_text = f"""
+✅ **Video Processing Complete!**
+
+**Results:**
+• Processed: `{len(frames)}` frames
+• Created: `{len(all_emoji_files)}` emojis total
+• Grid: `{settings.grid_x}×{settings.grid_y}` per frame
+• Quality: `{settings.quality_level.title()}`
+
+⚠️ **Sticker pack creation failed:** `{pack_result.get("error", "Unknown error")}`
+
+You can still download the ZIP file with all your emojis below.
 """
         
         # Store results in state
@@ -213,12 +249,13 @@ Your video emoji collection is ready! 🎉
             zip_path=str(master_zip_path),
             pack_name=f"video_pack_{user_id}",
             frame_count=len(frames),
-            frame_sequences=frame_sequences
+            frame_sequences=frame_sequences,
+            sticker_pack_result=pack_result
         )
         
         await callback.message.edit_text(
             success_text,
-            reply_markup=get_processing_complete_keyboard(),
+            reply_markup=get_processing_complete_keyboard(has_sticker_pack=pack_result["success"]),
             parse_mode="Markdown"
         )
         
