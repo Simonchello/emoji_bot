@@ -287,7 +287,7 @@ class ImageProcessor:
         except Exception as e:
             raise ImageProcessingError(f"Failed to load image {file_path}: {e}")
     
-    def save_image(self, image: np.ndarray, file_path: Path, quality: int = 95) -> bool:
+    def save_image(self, image: np.ndarray, file_path: Path, quality: int = 85) -> bool:
         """
         Save image to file
         
@@ -303,11 +303,13 @@ class ImageProcessor:
             # Ensure directory exists
             file_path.parent.mkdir(parents=True, exist_ok=True)
             
-            # Set compression parameters
+            # Set compression parameters optimized for emoji files
             if file_path.suffix.lower() == '.jpg' or file_path.suffix.lower() == '.jpeg':
                 params = [cv2.IMWRITE_JPEG_QUALITY, quality]
             elif file_path.suffix.lower() == '.png':
-                params = [cv2.IMWRITE_PNG_COMPRESSION, 9 - (quality // 10)]
+                # Use higher compression for PNG to reduce file size
+                compression_level = max(6, 9 - (quality // 15))  # Range 6-9 for better compression
+                params = [cv2.IMWRITE_PNG_COMPRESSION, compression_level]
             else:
                 params = []
             

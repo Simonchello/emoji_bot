@@ -3,6 +3,8 @@ import logging
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 import time
+import cv2
+import numpy as np
 
 from aiogram import Bot
 from aiogram.types import InputFile, BufferedInputFile
@@ -108,9 +110,8 @@ class StickerPackManager:
                     logger.warning(f"Emoji file not found: {file_path}")
                     continue
                 
-                # Read file content
-                with open(file_path, 'rb') as f:
-                    file_content = f.read()
+                # Optimize file for Telegram
+                file_content = self._optimize_image_for_telegram(file_path)
                 
                 # Create input file
                 input_file = BufferedInputFile(
@@ -207,9 +208,8 @@ class StickerPackManager:
                 if not file_path.exists():
                     continue
                 
-                # Read file content
-                with open(file_path, 'rb') as f:
-                    file_content = f.read()
+                # Optimize file for Telegram
+                file_content = self._optimize_image_for_telegram(file_path)
                 
                 # Create input file
                 input_file = BufferedInputFile(
@@ -306,6 +306,75 @@ class StickerPackManager:
         except Exception as e:
             logger.warning(f"Could not delete pack {pack_name}: {e}")
             return False
+    
+    def _optimize_image_for_telegram(self, image_path: Path) -> bytes:
+        """
+        Optimize image for Telegram sticker requirements
+        
+        Args:
+            image_path: Path to the image file
+            
+        Returns:
+            Optimized image as bytes
+        """
+        try:
+            # Load image
+            image = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
+            if image is None:
+                raise ProcessingError(f"Could not load image: {image_path}")
+            
+            # Ensure image is 512x512
+            if image.shape[:2] != (512, 512):
+                image = cv2.resize(image, (512, 512), interpolation=cv2.INTER_LANCZOS4)
+            
+            # Convert to RGBA if needed (for PNG with transparency)
+            if len(image.shape) == 3 and image.shape[2] == 3:
+                # BGR to BGRA
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA)
+            
+            # Try different compression levels to stay under 512KB
+            max_file_size = 500 * 1024  # 500KB to be safe
+            
+            # Start with high compression
+            for compression in [9, 8, 7, 6, 5, 4, 3]:
+                encode_params = [cv2.IMWRITE_PNG_COMPRESSION, compression]
+                success, buffer = cv2.imencode('.png', image, encode_params)
+                
+                if success and len(buffer) < max_file_size:
+                    logger.debug(f"Optimized image: {len(buffer)} bytes with compression {compression}")
+                    return buffer.tobytes()
+            
+            # If still too large, try reducing image quality
+            # Convert to RGB and use JPEG compression
+            if len(image.shape) == 4:
+                # BGRA to BGR (remove alpha)
+                image_rgb = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+            else:
+                image_rgb = image
+            
+            for quality in [95, 90, 85, 80, 75, 70]:
+                encode_params = [cv2.IMWRITE_JPEG_QUALITY, quality]
+                success, buffer = cv2.imencode('.jpg', image_rgb, encode_params)
+                
+                if success and len(buffer) < max_file_size:
+                    logger.debug(f"Optimized image as JPEG: {len(buffer)} bytes with quality {quality}")
+                    return buffer.tobytes()
+            
+            # Last resort: heavily compress PNG
+            encode_params = [cv2.IMWRITE_PNG_COMPRESSION, 9]
+            success, buffer = cv2.imencode('.png', image, encode_params)
+            
+            if success:
+                logger.warning(f"Image size: {len(buffer)} bytes (may be too large for Telegram)")
+                return buffer.tobytes()
+            else:
+                raise ProcessingError("Failed to encode image")
+                
+        except Exception as e:
+            logger.error(f"Failed to optimize image {image_path}: {e}")
+            # Fallback: read original file
+            with open(image_path, 'rb') as f:
+                return f.read()
     
     def generate_pack_link(self, pack_name: str) -> str:
         """
