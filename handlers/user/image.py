@@ -45,13 +45,13 @@ async def handle_image_upload(message: Message, state: FSMContext, bot: Bot):
     
     # Show processing confirmation
     config_text = f"""
-🖼️ **Image Received!**
+🖼️ <b>Image Received!</b>
 
-**Your Settings:**
-• Grid Size: `{settings.grid_x}×{settings.grid_y}`
-• Adaptation: `{settings.adaptation_method.title()}`  
-• Quality: `{settings.quality_level.title()}`
-• Background Removal: `{'Yes' if settings.background_removal else 'No'}`
+<b>Your Settings:</b>
+• Grid Size: {settings.grid_x}×{settings.grid_y}
+• Adaptation: {settings.adaptation_method.title()}  
+• Quality: {settings.quality_level.title()}
+• Background Removal: {'Yes' if settings.background_removal else 'No'}
 
 Ready to process your image into {settings.grid_x * settings.grid_y} emojis?
 """
@@ -66,7 +66,7 @@ Ready to process your image into {settings.grid_x * settings.grid_y} emojis?
     await message.answer(
         config_text,
         reply_markup=get_processing_confirmation_keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 
@@ -82,8 +82,8 @@ async def start_image_processing(callback: CallbackQuery, state: FSMContext, bot
         
         # Update message to show processing started
         await callback.message.edit_text(
-            "🔄 **Processing your image...**\n\nThis may take a few moments.",
-            parse_mode="Markdown"
+            "🔄 <b>Processing your image...</b>\n\nThis may take a few moments.",
+            parse_mode="HTML"
         )
         await callback.answer()
         
@@ -161,33 +161,38 @@ async def start_image_processing(callback: CallbackQuery, state: FSMContext, bot
         
         # Success message with sticker pack link
         if pack_result["success"]:
+            # Use HTML formatting to avoid Markdown parsing issues
+            safe_title = pack_result["pack_title"].replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+            safe_link = pack_result["pack_link"]
+            
             success_text = f"""
-✅ **Processing Complete!**
+✅ <b>Processing Complete!</b>
 
-**Results:**
-• Created: `{len(saved_files)}` emojis
-• Grid: `{settings.grid_x}×{settings.grid_y}`
-• Quality: `{settings.quality_level.title()}`
+<b>Results:</b>
+• Created: {len(saved_files)} emojis
+• Grid: {settings.grid_x}×{settings.grid_y}
+• Quality: {settings.quality_level.title()}
 
-🎉 **Your Telegram custom emoji pack is ready!**
+🎉 <b>Your Telegram custom emoji pack is ready!</b>
 
-**Pack:** `{pack_result["pack_title"]}`
-**Link:** {pack_result["pack_link"]}
+<b>Pack:</b> {safe_title}
+<b>Link:</b> <a href="{safe_link}">{safe_link}</a>
 
 Click the link above to add your custom emoji pack to Telegram! 🚀
 
-*Note: Custom emojis require Telegram Premium to add, but everyone can see them once added.*
+<i>Note: Custom emojis require Telegram Premium to add, but everyone can see them once added.</i>
 """
         else:
+            error_msg = pack_result.get("error", "Unknown error").replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
             success_text = f"""
-✅ **Processing Complete!**
+✅ <b>Processing Complete!</b>
 
-**Results:**
-• Created: `{len(saved_files)}` emojis
-• Grid: `{settings.grid_x}×{settings.grid_y}`
-• Quality: `{settings.quality_level.title()}`
+<b>Results:</b>
+• Created: {len(saved_files)} emojis
+• Grid: {settings.grid_x}×{settings.grid_y}
+• Quality: {settings.quality_level.title()}
 
-⚠️ **Custom emoji pack creation failed:** `{pack_result.get("error", "Unknown error")}`
+⚠️ <b>Custom emoji pack creation failed:</b> {error_msg}
 
 You can still download the ZIP file with your emojis below.
 """
@@ -203,7 +208,7 @@ You can still download the ZIP file with your emojis below.
         await callback.message.edit_text(
             success_text,
             reply_markup=get_processing_complete_keyboard(has_sticker_pack=pack_result["success"]),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         
         # Send first few emojis as preview
@@ -221,16 +226,16 @@ You can still download the ZIP file with your emojis below.
         logger.error(f"Image processing failed for user {user_id}: {e}")
         
         error_text = f"""
-❌ **Processing Failed**
+❌ <b>Processing Failed</b>
 
-Error: `{str(e)[:100]}...` 
+Error: {str(e)[:100]}... 
 
 Please try again with a different image or settings.
 """
         
         await callback.message.edit_text(
             error_text,
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         await state.clear()
 
@@ -243,7 +248,7 @@ async def send_emoji_preview(message: Message, emoji_files: list, max_preview: i
         if not preview_files:
             return
         
-        await message.answer(f"📱 **Preview** (showing {len(preview_files)}/{len(emoji_files)} emojis):")
+        await message.answer(f"📱 <b>Preview</b> (showing {len(preview_files)}/{len(emoji_files)} emojis):")
         
         # Send emojis as photos
         for i, emoji_path in enumerate(preview_files):
@@ -275,7 +280,7 @@ async def download_zip_file(callback: CallbackQuery, state: FSMContext):
         from aiogram.types import FSInputFile
         await callback.message.answer_document(
             FSInputFile(zip_path),
-            caption="📦 **Your Emoji Pack**\n\nExtract and use these PNG files as Telegram stickers!"
+            caption="📦 <b>Your Emoji Pack</b>\n\nExtract and use these PNG files as Telegram stickers!"
         )
         await callback.answer("📦 ZIP file sent!")
         
@@ -319,8 +324,8 @@ async def process_another_image(callback: CallbackQuery, state: FSMContext):
     """Process another image"""
     await state.clear()
     await callback.message.edit_text(
-        "🖼️ **Ready for another image!**\n\nSend me your next image to process.",
-        parse_mode="Markdown"
+        "🖼️ <b>Ready for another image!</b>\n\nSend me your next image to process.",
+        parse_mode="HTML"
     )
     await callback.answer()
 
@@ -338,19 +343,21 @@ async def add_sticker_pack_to_telegram(callback: CallbackQuery, state: FSMContex
     pack_link = pack_result["pack_link"]
     pack_title = pack_result["pack_title"]
     
+    safe_title = pack_title.replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+    
     message_text = f"""
-🎯 **Add Your Custom Emoji Pack to Telegram**
+🎯 <b>Add Your Custom Emoji Pack to Telegram</b>
 
-**Pack Name:** `{pack_title}`
+<b>Pack Name:</b> {safe_title}
 
-**How to add:**
+<b>How to add:</b>
 1. Click the link below
 2. Press "Add Emoji Pack" in Telegram
 3. Start using your custom emojis!
 
-**Note:** You need Telegram Premium to add custom emoji packs.
+<b>Note:</b> You need Telegram Premium to add custom emoji packs.
 
-**Link:** {pack_link}
+<b>Link:</b> <a href="{pack_link}">{pack_link}</a>
 
 🎉 Enjoy your personalized emoji pack!
 """
@@ -371,7 +378,7 @@ async def add_sticker_pack_to_telegram(callback: CallbackQuery, state: FSMContex
     await callback.message.edit_text(
         message_text,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
     await callback.answer("🎯 Custom emoji pack link ready!")
 
@@ -383,25 +390,27 @@ async def back_to_results(callback: CallbackQuery, state: FSMContext):
     pack_result = data.get('sticker_pack_result', {})
     
     if pack_result.get("success"):
+        safe_title = pack_result["pack_title"].replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+        safe_link = pack_result["pack_link"]
         message_text = f"""
-✅ **Processing Complete!**
+✅ <b>Processing Complete!</b>
 
-🎉 **Your Telegram custom emoji pack is ready!**
+🎉 <b>Your Telegram custom emoji pack is ready!</b>
 
-**Pack:** `{pack_result["pack_title"]}`
-**Link:** {pack_result["pack_link"]}
+<b>Pack:</b> {safe_title}
+<b>Link:</b> <a href="{safe_link}">{safe_link}</a>
 
 Click the link above to add your custom emoji pack to Telegram! 🚀
 
-*Note: Custom emojis require Telegram Premium to add, but everyone can see them once added.*
+<i>Note: Custom emojis require Telegram Premium to add, but everyone can see them once added.</i>
 """
     else:
-        message_text = "✅ **Processing Complete!**\n\nYour emojis are ready for download."
+        message_text = "✅ <b>Processing Complete!</b>\n\nYour emojis are ready for download."
     
     await callback.message.edit_text(
         message_text,
         reply_markup=get_processing_complete_keyboard(has_sticker_pack=pack_result.get("success", False)),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
     await callback.answer()
 
@@ -429,8 +438,8 @@ async def delete_processing_files(callback: CallbackQuery, state: FSMContext):
                 pass
         
         await callback.message.edit_text(
-            "🗑️ **Files deleted successfully!**",
-            parse_mode="Markdown"
+            "🗑️ <b>Files deleted successfully!</b>",
+            parse_mode="HTML"
         )
         await callback.answer("Files deleted!")
         await state.clear()

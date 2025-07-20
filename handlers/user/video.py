@@ -59,19 +59,19 @@ async def handle_video_upload(message: Message, state: FSMContext, bot: Bot):
     total_emojis = estimated_frames * (settings.grid_x * settings.grid_y)
     
     config_text = f"""
-🎥 **Video Received!**
+🎥 <b>Video Received!</b>
 
-**Video Info:**
-• Size: `{file_size_mb:.1f} MB`
-• Duration: `{duration}s`
-• Estimated frames: `~{estimated_frames}`
+<b>Video Info:</b>
+• Size: {file_size_mb:.1f} MB
+• Duration: {duration}s
+• Estimated frames: ~{estimated_frames}
 
-**Your Settings:**
-• Grid Size: `{settings.grid_x}×{settings.grid_y}`
-• Adaptation: `{settings.adaptation_method.title()}`
-• Quality: `{settings.quality_level.title()}`
+<b>Your Settings:</b>
+• Grid Size: {settings.grid_x}×{settings.grid_y}
+• Adaptation: {settings.adaptation_method.title()}
+• Quality: {settings.quality_level.title()}
 
-**Estimated Output:** `~{total_emojis}` emojis
+<b>Estimated Output:</b> ~{total_emojis} emojis
 
 Ready to process your video?
 """
@@ -87,7 +87,7 @@ Ready to process your video?
     await message.answer(
         config_text,
         reply_markup=get_processing_confirmation_keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 
@@ -103,8 +103,8 @@ async def start_video_processing(callback: CallbackQuery, state: FSMContext, bot
         
         # Update message to show processing started
         await callback.message.edit_text(
-            "🔄 **Processing your video...**\n\nExtracting frames and creating emojis. This may take a few minutes.",
-            parse_mode="Markdown"
+            "🔄 <b>Processing your video...</b>\n\nExtracting frames and creating emojis. This may take a few minutes.",
+            parse_mode="HTML"
         )
         await callback.answer()
         
@@ -211,36 +211,40 @@ async def start_video_processing(callback: CallbackQuery, state: FSMContext, bot
         
         # Success message with sticker pack link
         if pack_result["success"]:
+            safe_title = pack_result["pack_title"].replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+            safe_link = pack_result["pack_link"]
+            
             success_text = f"""
-✅ **Video Processing Complete!**
+✅ <b>Video Processing Complete!</b>
 
-**Results:**
-• Processed: `{len(frames)}` frames
-• Created: `{len(all_emoji_files)}` emojis total
-• Grid: `{settings.grid_x}×{settings.grid_y}` per frame
-• Quality: `{settings.quality_level.title()}`
+<b>Results:</b>
+• Processed: {len(frames)} frames
+• Created: {len(all_emoji_files)} emojis total
+• Grid: {settings.grid_x}×{settings.grid_y} per frame
+• Quality: {settings.quality_level.title()}
 
-🎉 **Your Telegram custom emoji pack is ready!**
-*(Using first frame as emoji pack)*
+🎉 <b>Your Telegram custom emoji pack is ready!</b>
+<i>(Using first frame as emoji pack)</i>
 
-**Pack:** `{pack_result["pack_title"]}`
-**Link:** {pack_result["pack_link"]}
+<b>Pack:</b> {safe_title}
+<b>Link:</b> <a href="{safe_link}">{safe_link}</a>
 
 Click the link above to add your custom emoji pack to Telegram! 🚀
 
-*Note: Custom emojis require Telegram Premium to add, but everyone can see them once added.*
+<i>Note: Custom emojis require Telegram Premium to add, but everyone can see them once added.</i>
 """
         else:
+            error_msg = pack_result.get("error", "Unknown error").replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
             success_text = f"""
-✅ **Video Processing Complete!**
+✅ <b>Video Processing Complete!</b>
 
-**Results:**
-• Processed: `{len(frames)}` frames
-• Created: `{len(all_emoji_files)}` emojis total
-• Grid: `{settings.grid_x}×{settings.grid_y}` per frame
-• Quality: `{settings.quality_level.title()}`
+<b>Results:</b>
+• Processed: {len(frames)} frames
+• Created: {len(all_emoji_files)} emojis total
+• Grid: {settings.grid_x}×{settings.grid_y} per frame
+• Quality: {settings.quality_level.title()}
 
-⚠️ **Custom emoji pack creation failed:** `{pack_result.get("error", "Unknown error")}`
+⚠️ <b>Custom emoji pack creation failed:</b> {error_msg}
 
 You can still download the ZIP file with all your emojis below.
 """
@@ -258,7 +262,7 @@ You can still download the ZIP file with all your emojis below.
         await callback.message.edit_text(
             success_text,
             reply_markup=get_processing_complete_keyboard(has_sticker_pack=pack_result["success"]),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         
         # Send preview of first frame emojis
@@ -278,11 +282,11 @@ You can still download the ZIP file with all your emojis below.
         logger.error(f"Video processing failed for user {user_id}: {e}")
         
         error_text = f"""
-❌ **Video Processing Failed**
+❌ <b>Video Processing Failed</b>
 
-Error: `{str(e)[:100]}...`
+Error: {str(e)[:100]}...
 
-**Common issues:**
+<b>Common issues:</b>
 • Video too long (max 5 minutes)
 • Unsupported format
 • File corrupted
@@ -292,7 +296,7 @@ Please try with a shorter, high-quality video.
         
         await callback.message.edit_text(
             error_text,
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         await state.clear()
 
@@ -305,7 +309,7 @@ async def send_video_emoji_preview(message: Message, emoji_files: list, frame_id
         if not preview_files:
             return
         
-        await message.answer(f"📱 **Frame {frame_idx} Preview** (showing {len(preview_files)}/{len(emoji_files)} emojis):")
+        await message.answer(f"📱 <b>Frame {frame_idx} Preview</b> (showing {len(preview_files)}/{len(emoji_files)} emojis):")
         
         # Send emojis as photos
         for i, emoji_path in enumerate(preview_files):
@@ -333,14 +337,14 @@ async def view_video_details(callback: CallbackQuery, state: FSMContext):
     pack_name = data.get('pack_name', 'Unknown')
     
     details_text = f"""
-📊 **Processing Details**
+📊 <b>Processing Details</b>
 
-**Video Analysis:**
-• Frames extracted: `{frame_count}`
-• Total emojis: `{emoji_count}`
-• Pack name: `{pack_name}`
+<b>Video Analysis:</b>
+• Frames extracted: {frame_count}
+• Total emojis: {emoji_count}
+• Pack name: {pack_name}
 
-**Frame Breakdown:**
+<b>Frame Breakdown:</b>
 """
     
     # Add frame-by-frame info
@@ -351,12 +355,12 @@ async def view_video_details(callback: CallbackQuery, state: FSMContext):
         for i in range(frame_count):
             details_text += f"• Frame {i+1}: {emojis_per_frame} emojis\n"
     
-    details_text += f"\n**Files:** ZIP archive with all frames ready for download!"
+    details_text += f"\n<b>Files:</b> ZIP archive with all frames ready for download!"
     
     await callback.message.edit_text(
         details_text,
         reply_markup=get_processing_complete_keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
     await callback.answer()
 
@@ -390,7 +394,7 @@ async def send_video_stickers_by_frame(callback: CallbackQuery, state: FSMContex
             frame_emojis = emoji_files[start_idx:end_idx]
             
             if frame_emojis:
-                await callback.message.answer(f"🎬 **Frame {frame_idx + 1}/{frame_count}**")
+                await callback.message.answer(f"🎬 <b>Frame {frame_idx + 1}/{frame_count}</b>")
                 
                 for i, emoji_path in enumerate(frame_emojis):
                     if Path(emoji_path).exists():
