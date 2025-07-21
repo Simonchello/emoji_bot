@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import shutil
 from pathlib import Path
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
@@ -224,6 +225,22 @@ You can still download the ZIP file with your emojis below.
         
     except Exception as e:
         logger.error(f"Image processing failed for user {user_id}: {e}")
+        
+        # Clean up any partially created files
+        try:
+            # Clean up original downloaded file
+            if 'local_path' in locals() and local_path and local_path.exists():
+                local_path.unlink()
+                logger.debug(f"Cleaned up downloaded file: {local_path}")
+            
+            # Clean up user output directory and all its contents
+            output_dir = CACHE_DIR / f"user_{user_id}_output"
+            if output_dir.exists():
+                shutil.rmtree(output_dir)
+                logger.debug(f"Cleaned up output directory: {output_dir}")
+                
+        except Exception as cleanup_error:
+            logger.warning(f"Failed to cleanup files after processing error: {cleanup_error}")
         
         error_text = f"""
 ❌ <b>Processing Failed</b>

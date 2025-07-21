@@ -83,6 +83,29 @@ class EmojiGenerator:
             return saved_files
             
         except Exception as e:
+            # Clean up any partially created files
+            if 'output_dir' in locals() and output_dir.exists():
+                try:
+                    # Clean up individual emoji files
+                    if 'saved_files' in locals():
+                        for file_path in saved_files:
+                            try:
+                                if file_path.exists():
+                                    file_path.unlink()
+                            except:
+                                pass
+                    
+                    # Clean up metadata file if it exists
+                    if 'safe_pack_name' in locals():
+                        metadata_path = output_dir / f"{safe_pack_name}_metadata.json"
+                        if metadata_path.exists():
+                            metadata_path.unlink()
+                    
+                    logger.debug(f"Cleaned up partially created emoji files in: {output_dir}")
+                    
+                except Exception as cleanup_error:
+                    logger.warning(f"Failed to cleanup emoji files after error: {cleanup_error}")
+            
             raise ImageProcessingError(f"Failed to create emoji pack: {e}")
     
     def optimize_emoji_size(self, image: np.ndarray, target_size: int = 100) -> np.ndarray:
@@ -355,4 +378,12 @@ Extract the PNG files and upload them to Telegram as stickers.
             return output_path
             
         except Exception as e:
+            # Clean up partially created archive file
+            if 'output_path' in locals() and output_path.exists():
+                try:
+                    output_path.unlink()
+                    logger.debug(f"Cleaned up partially created archive: {output_path}")
+                except Exception as cleanup_error:
+                    logger.warning(f"Failed to cleanup partial archive: {cleanup_error}")
+            
             raise ImageProcessingError(f"Failed to create pack archive: {e}")

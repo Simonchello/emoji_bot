@@ -64,6 +64,15 @@ class FileManager:
             
         except Exception as e:
             logger.error(f"Failed to download file {file_info.file_path}: {e}")
+            
+            # Clean up partially downloaded file if it exists
+            if 'local_path' in locals() and local_path.exists():
+                try:
+                    local_path.unlink()
+                    logger.debug(f"Cleaned up partially downloaded file: {local_path}")
+                except Exception as cleanup_error:
+                    logger.warning(f"Failed to cleanup partially downloaded file: {cleanup_error}")
+            
             raise
     
     async def cleanup_user_files(self, user_id: int, max_age_hours: int = 1):
