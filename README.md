@@ -6,6 +6,7 @@ A powerful Telegram bot that converts images and videos into custom emoji packs 
 
 - **Image Processing**: Convert static images to emoji grids with advanced OpenCV processing
 - **Video Processing**: Extract frames from videos and convert to emoji sequences  
+- **🎬 Animated Emojis**: Create animated emoji packs from video input (WebM format)
 - **Custom Grid Sizes**: Flexible grid dimensions (1×1 to 20×20)
 - **Smart Adaptation**: Automatic image reshaping with padding, stretching, or cropping
 - **Custom Emoji Packs**: Create actual Telegram custom emoji packs (requires Premium to add)
@@ -20,6 +21,7 @@ A powerful Telegram bot that converts images and videos into custom emoji packs 
 - Python 3.11+
 - Telegram Bot Token from [@BotFather](https://t.me/botfather)
 - `uv` package manager (recommended) or pip
+- **FFmpeg** (required for animated emoji WebM creation)
 
 ### Installation
 
@@ -29,7 +31,19 @@ A powerful Telegram bot that converts images and videos into custom emoji packs 
    cd emoji_bot
    ```
 
-2. **Install dependencies:**
+2. **Install system dependencies:**
+   ```bash
+   # Ubuntu/Debian
+   sudo apt update && sudo apt install ffmpeg
+   
+   # macOS (with Homebrew)
+   brew install ffmpeg
+   
+   # Windows (with Chocolatey)
+   choco install ffmpeg
+   ```
+
+3. **Install Python dependencies:**
    ```bash
    # Using uv (recommended)
    curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -39,13 +53,13 @@ A powerful Telegram bot that converts images and videos into custom emoji packs 
    pip install -r requirements.txt
    ```
 
-3. **Configure environment:**
+4. **Configure environment:**
    ```bash
    cp .env.example .env
    # Edit .env with your bot token
    ```
 
-4. **Run the bot:**
+5. **Run the bot:**
    ```bash
    python main.py
    ```
@@ -171,10 +185,15 @@ The bot supports flexible grid dimensions:
 ### Video Processing Pipeline
 
 1. **Upload**: User sends video file
-2. **Frame Extraction**: Smart frame sampling based on duration
-3. **Processing**: Each frame processed as image grid
-4. **Pack Creation**: First frame becomes custom emoji pack
-5. **Archive**: All frames available as ZIP download
+2. **Mode Selection**: Choose between static frames or animated emojis
+3. **Frame Extraction**: Smart frame sampling based on duration
+4. **Processing**: 
+   - **Static Mode**: Each frame processed as image grid
+   - **🎬 Animated Mode**: Frames organized by position, encoded as WebM
+5. **Pack Creation**: 
+   - **Static**: First frame becomes custom emoji pack
+   - **🎬 Animated**: WebM animated emoji pack with configurable FPS/duration
+6. **Archive**: All emojis available as ZIP download
 
 ### Adaptation Methods
 
@@ -277,6 +296,40 @@ The bot includes comprehensive error handling:
 - **Telegram API**: Rate limit and upload error handling
 - **User Feedback**: Clear error messages with solutions
 
+### Common Issues and Solutions
+
+#### Animated Emoji Issues
+
+**"Unknown encoder 'libvp9'" Error:**
+```bash
+# Your FFmpeg doesn't have VP9 support. Install full version:
+
+# Ubuntu/Debian - Install from official repository
+sudo apt remove ffmpeg
+sudo apt update
+sudo apt install snapd
+sudo snap install ffmpeg
+
+# Or compile with full codec support
+sudo apt install software-properties-common
+sudo add-apt-repository ppa:savoury1/ffmpeg4
+sudo apt update
+sudo apt install ffmpeg
+
+# macOS - Reinstall with full codecs
+brew uninstall ffmpeg
+brew install ffmpeg
+
+# Verify VP9/VP8 support:
+ffmpeg -encoders | grep -E "(libvp9|libvpx)"
+```
+
+**Large File Size (>64KB) Warnings:**
+- Bot automatically tries compression fallbacks
+- VP8 fallback used when VP9 not available  
+- H.264 final fallback for compatibility
+- Reduce FPS or duration for smaller files
+
 ## 🔒 Security Features
 
 - **Input Validation**: Strict file type and size checking
@@ -325,6 +378,13 @@ For issues and questions:
 
 ### Video to Emoji Sequence
 1. Send short video
-2. Configure grid size
-3. Get animated sequence as individual emojis
-4. Use first frame as custom emoji pack
+2. Choose processing mode (static or animated)
+3. Configure grid size
+4. **Static Mode**: Get frame sequence as individual emojis
+5. **🎬 Animated Mode**: Get WebM animated emojis (15-30 FPS, 1-3s duration)
+
+### Creating Animated Emojis
+1. Send video to bot
+2. Select "🎬 Create Animated" 
+3. Configure FPS (15/30) and duration (1-3s)
+4. Get animated WebM emoji pack for Telegram Premium

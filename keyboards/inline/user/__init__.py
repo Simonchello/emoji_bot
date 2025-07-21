@@ -9,6 +9,7 @@ from .processing import (
     get_processing_options_keyboard,
     get_processing_progress_keyboard,
     get_processing_complete_keyboard,
+    get_animation_options_keyboard,
 )
 from .settings import (
     get_settings_keyboard,
@@ -27,6 +28,7 @@ __all__ = [
     "get_processing_options_keyboard",
     "get_processing_progress_keyboard",
     "get_processing_complete_keyboard",
+    "get_animation_options_keyboard",
     "get_settings_keyboard",
     "get_quality_settings_keyboard",
     "get_background_settings_keyboard",

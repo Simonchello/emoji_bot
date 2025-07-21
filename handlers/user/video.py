@@ -7,7 +7,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 from filters import IsVideoFilter, FileSizeFilter, SupportedFormatFilter
-from keyboards import get_processing_confirmation_keyboard, get_processing_complete_keyboard
+from keyboards import get_processing_confirmation_keyboard, get_processing_complete_keyboard, get_animation_options_keyboard
 from states import UserStates
 from utils import (
     VideoProcessor, ImageProcessor, EmojiGenerator, FileManager, ProgressTracker, StickerPackManager,
@@ -87,7 +87,7 @@ Ready to process your video?
     
     await message.answer(
         config_text,
-        reply_markup=get_processing_confirmation_keyboard(),
+        reply_markup=get_processing_confirmation_keyboard(is_video=True),
         parse_mode="HTML"
     )
 
@@ -430,12 +430,353 @@ async def send_video_stickers_by_frame(callback: CallbackQuery, state: FSMContex
         await callback.message.answer("❌ Some emojis failed to send")
 
 
-@router.callback_query(F.data == "create_animated")
-async def create_animated_emojis(callback: CallbackQuery, state: FSMContext):
-    """Create animated emojis from video frames (placeholder)"""
-    await callback.answer("🔄 Animated emoji creation is coming soon!", show_alert=True)
+@router.callback_query(F.data == "create_animated", UserStates.confirming_processing)
+async def show_animation_options(callback: CallbackQuery, state: FSMContext):
+    """Show animation options for video processing"""
+    await callback.message.edit_text(
+        "🎬 <b>Animated Emoji Options</b>\n\n"
+        "Configure your animated emoji settings:\n\n"
+        "• <b>Frame Rate:</b> Higher FPS = smoother animation\n"
+        "• <b>Duration:</b> How long each emoji loops\n"
+        "• <b>File Size:</b> Each emoji must be under 64KB\n\n"
+        "<i>Note: Animated emojis work in Telegram Premium</i>",
+        reply_markup=get_animation_options_keyboard(),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("fps_"), UserStates.confirming_processing)
+async def set_animation_fps(callback: CallbackQuery, state: FSMContext):
+    """Set animation FPS"""
+    fps_value = int(callback.data.split("_")[1])
+    await state.update_data(animation_fps=fps_value)
     
-    # In a full implementation, this would:
-    # 1. Group frames by cell position
-    # 2. Create GIF or WebM animations
-    # 3. Generate animated sticker packs
+    await callback.answer(f"✅ Frame rate set to {fps_value} FPS")
+
+
+@router.callback_query(F.data.startswith("duration_"), UserStates.confirming_processing)
+async def set_animation_duration(callback: CallbackQuery, state: FSMContext):
+    """Set animation duration"""
+    duration_value = float(callback.data.split("_")[1])
+    await state.update_data(animation_duration=duration_value)
+    
+    await callback.answer(f"✅ Duration set to {duration_value} seconds")
+
+
+@router.callback_query(F.data == "confirm_animated", UserStates.confirming_processing)
+async def start_animated_video_processing(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    """Start animated video processing"""
+    user_id = callback.from_user.id
+    settings = user_settings[user_id]
+    data = await state.get_data()
+    
+    # Get animation settings or use defaults
+    fps = data.get('animation_fps', 15)
+    duration = data.get('animation_duration', 2.0)
+    
+    try:
+        await state.set_state(UserStates.processing_media)
+        
+        # Update message to show processing started
+        await callback.message.edit_text(
+            f"🎬 <b>Creating Animated Emojis...</b>\n\n"
+            f"Settings: {fps} FPS, {duration}s duration\n\n"
+            f"This will take several minutes for WebM encoding.",
+            parse_mode="HTML"
+        )
+        await callback.answer()
+        
+        # Initialize processors
+        config = load_config()
+        file_manager = FileManager(bot, config.max_file_size_mb)
+        
+        # Get file info and download
+        file_info = await bot.get_file(data['file_id'])
+        local_path = await file_manager.download_media(file_info, user_id)
+        
+        # Validate file
+        validate_file_size(local_path, config.max_file_size_mb)
+        media_type = validate_file_format(local_path)
+        
+        if media_type != "video":
+            raise FileFormatError("Expected video file")
+        
+        # Validate video constraints
+        video_processor.validate_video(local_path, config.max_video_duration)
+        
+        # Get video info
+        video_info = video_processor.get_video_info(local_path)
+        logger.info(f"Processing animated video: {video_info}")
+        
+        # Calculate processing steps
+        estimated_frames = min(int(fps * duration), data.get('estimated_frames', 10))
+        total_steps = 5 + estimated_frames + (settings.grid_x * settings.grid_y)
+        progress_tracker = ProgressTracker(total_steps)
+        
+        # Extract frames from video
+        progress_tracker.update(1, "Extracting video frames...")
+        frames = video_processor.extract_key_frames(
+            local_path, 
+            max_frames=estimated_frames,
+            progress_tracker=progress_tracker
+        )
+        
+        logger.info(f"Extracted {len(frames)} frames for animation")
+        
+        # Process frames into grid sequences
+        progress_tracker.update(1, "Processing frames...")
+        frame_sequences = []
+        
+        for frame_idx, frame in enumerate(frames):
+            # Enhance frame if needed
+            if settings.quality_level == "high":
+                frame = image_processor.enhance_image(frame, "medium")
+            
+            # Adapt frame to grid ratio
+            adapted_frame = image_processor.adapt_image_to_grid(
+                frame, settings.grid_x, settings.grid_y, settings.adaptation_method
+            )
+            
+            # Split into grid cells
+            emoji_cells = image_processor.split_image_grid(
+                adapted_frame, settings.grid_x, settings.grid_y
+            )
+            
+            # Apply background removal if enabled
+            if settings.background_removal:
+                for i, cell in enumerate(emoji_cells):
+                    emoji_cells[i] = emoji_generator.add_transparency(cell, method="white")
+            
+            frame_sequences.append(emoji_cells)
+            progress_tracker.update(1, f"Processed frame {frame_idx+1}/{len(frames)}")
+        
+        # Organize frames by emoji position
+        progress_tracker.update(1, "Organizing animation sequences...")
+        position_sequences = video_processor.organize_frames_by_position(
+            frame_sequences, (settings.grid_x, settings.grid_y)
+        )
+        
+        # Create animated emoji pack
+        progress_tracker.update(1, "Creating animated emojis...")
+        output_dir = CACHE_DIR / f"user_{user_id}_animated_output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        pack_name = f"animated_emoji_pack_{user_id}"
+        animated_files = emoji_generator.create_animated_emoji_pack(
+            position_sequences,
+            pack_name,
+            user_id,
+            output_dir,
+            fps=fps,
+            duration=duration,
+            progress_tracker=progress_tracker
+        )
+        
+        # Check if any animated files were actually created
+        if not animated_files:
+            raise VideoProcessingError(
+                "No animated emojis were created. This could be due to:\n"
+                "• FFmpeg VP9/VP8 codec not available\n"  
+                "• Video frames processing failed\n"
+                "• All WebM files exceeded size limits"
+            )
+        
+        # Create ZIP archive with animated files
+        progress_tracker.update(1, "Creating archive...")
+        zip_path = output_dir / f"{pack_name}.zip"
+        emoji_generator.create_pack_archive(animated_files, pack_name, zip_path)
+        
+        # Create Telegram animated sticker pack
+        sticker_manager = StickerPackManager(bot)
+        user_name = callback.from_user.first_name or "User"
+        
+        # Use first few animated emojis for the sticker pack
+        pack_emojis = animated_files[:min(20, len(animated_files))]  # Limit for initial pack
+        
+        pack_result = await sticker_manager.create_sticker_pack(
+            user_id=user_id,
+            user_name=user_name,
+            emoji_files=pack_emojis,
+            grid_size=(settings.grid_x, settings.grid_y),
+            pack_type="animated",
+            animated=True
+        )
+        
+        # Success message with animated pack link
+        if pack_result["success"]:
+            safe_title = pack_result["pack_title"].replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+            safe_link = pack_result["pack_link"]
+            
+            success_text = f"""
+🎬 <b>Animated Emoji Processing Complete!</b>
+
+<b>Results:</b>
+• Created: {len(animated_files)} animated emojis
+• Grid: {settings.grid_x}×{settings.grid_y}
+• Animation: {fps} FPS, {duration}s duration
+• Format: WebM (Telegram compatible)
+
+🎉 <b>Your animated emoji pack is ready!</b>
+
+<b>Pack:</b> {safe_title}
+<b>Link:</b> <a href="{safe_link}">{safe_link}</a>
+
+Click the link above to add your animated emoji pack to Telegram! 🚀
+
+<i>Note: Animated emojis require Telegram Premium to add and use.</i>
+"""
+        else:
+            error_msg = pack_result.get("error", "Unknown error").replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+            success_text = f"""
+🎬 <b>Animated Emoji Processing Complete!</b>
+
+<b>Results:</b>
+• Created: {len(animated_files)} animated emojis
+• Grid: {settings.grid_x}×{settings.grid_y}
+• Animation: {fps} FPS, {duration}s duration
+• Format: WebM
+
+⚠️ <b>Animated emoji pack creation failed:</b> {error_msg}
+
+You can still download the ZIP file with your animated emojis below.
+"""
+        
+        # Store results in state
+        await state.update_data(
+            emoji_files=[str(f) for f in animated_files],
+            zip_path=str(zip_path),
+            pack_name=pack_name,
+            animated=True,
+            fps=fps,
+            duration=duration,
+            sticker_pack_result=pack_result
+        )
+        
+        await callback.message.edit_text(
+            success_text,
+            reply_markup=get_processing_complete_keyboard(
+                has_sticker_pack=pack_result["success"],
+                is_animated=True
+            ),
+            parse_mode="HTML"
+        )
+        
+        # Send preview of first few animated emojis
+        if animated_files:
+            await send_animated_emoji_preview(callback.message, animated_files[:3])
+        
+        # Clean up original file
+        try:
+            local_path.unlink()
+        except:
+            pass
+        
+        logger.info(f"Successfully created animated emoji pack for user {user_id}: {len(animated_files)} emojis")
+        
+    except Exception as e:
+        logger.error(f"Animated video processing failed for user {user_id}: {e}")
+        
+        # Clean up any partially created files
+        try:
+            # Clean up original downloaded file
+            if 'local_path' in locals() and local_path and local_path.exists():
+                local_path.unlink()
+                logger.debug(f"Cleaned up downloaded file: {local_path}")
+            
+            # Clean up user animated output directory and all its contents
+            output_dir = CACHE_DIR / f"user_{user_id}_animated_output"
+            if output_dir.exists():
+                shutil.rmtree(output_dir)
+                logger.debug(f"Cleaned up animated output directory: {output_dir}")
+                
+        except Exception as cleanup_error:
+            logger.warning(f"Failed to cleanup files after animated processing error: {cleanup_error}")
+        
+        error_text = f"""
+❌ <b>Animated Processing Failed</b>
+
+Error: {str(e)[:100]}...
+
+<b>Common issues:</b>
+• ffmpeg not installed (required for WebM)
+• Video too long or complex
+• Insufficient disk space for WebM encoding
+
+Please try with a shorter video or use static mode.
+"""
+        
+        await callback.message.edit_text(
+            error_text,
+            parse_mode="HTML"
+        )
+        await state.clear()
+
+
+@router.callback_query(F.data == "back_to_video")
+async def back_to_video_options(callback: CallbackQuery, state: FSMContext):
+    """Go back to video processing options"""
+    data = await state.get_data()
+    user_id = callback.from_user.id
+    settings = user_settings.get(user_id)
+    
+    if not settings:
+        await callback.answer("Settings not found", show_alert=True)
+        return
+    
+    estimated_frames = data.get('estimated_frames', 10)
+    total_emojis = estimated_frames * (settings.grid_x * settings.grid_y)
+    
+    config_text = f"""
+🎥 <b>Video Received!</b>
+
+<b>Your Settings:</b>
+• Grid Size: {settings.grid_x}×{settings.grid_y}
+• Adaptation: {settings.adaptation_method.title()}
+• Quality: {settings.quality_level.title()}
+
+<b>Estimated Output:</b> ~{total_emojis} emojis
+
+Ready to process your video?
+"""
+    
+    await callback.message.edit_text(
+        config_text,
+        reply_markup=get_processing_confirmation_keyboard(is_video=True),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+
+async def send_animated_emoji_preview(message: Message, animated_files: list, max_preview: int = 3):
+    """Send preview of generated animated emojis"""
+    try:
+        preview_files = animated_files[:max_preview]
+        
+        if not preview_files:
+            return
+        
+        await message.answer(f"🎬 <b>Animated Preview</b> (showing {len(preview_files)}/{len(animated_files)} emojis):")
+        
+        # Send animated emojis as documents (WebM files)
+        for i, emoji_path in enumerate(preview_files):
+            if Path(emoji_path).exists():
+                try:
+                    from aiogram.types import FSInputFile
+                    await message.answer_animation(
+                        FSInputFile(emoji_path),
+                        caption=f"Animated Emoji {i+1}"
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to send animated emoji preview {i+1}: {e}")
+                    # Fallback to document
+                    try:
+                        await message.answer_document(
+                            FSInputFile(emoji_path),
+                            caption=f"Animated Emoji {i+1} (WebM)"
+                        )
+                    except Exception as e2:
+                        logger.warning(f"Failed to send emoji as document {i+1}: {e2}")
+    
+    except Exception as e:
+        logger.warning(f"Failed to send animated emoji preview: {e}")

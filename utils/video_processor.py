@@ -303,3 +303,42 @@ class VideoProcessor:
             
         except Exception as e:
             raise VideoProcessingError(f"Video validation failed: {e}")
+    
+    def organize_frames_by_position(
+        self,
+        frame_sequences: List[List[np.ndarray]],
+        grid_size: Tuple[int, int]
+    ) -> List[List[np.ndarray]]:
+        """
+        Reorganize frame sequences from [frame][position] to [position][frame]
+        for animated emoji generation
+        
+        Args:
+            frame_sequences: List of frame sequences, each containing grid cells
+            grid_size: (grid_x, grid_y) tuple
+            
+        Returns:
+            List of position sequences, each containing frames for that position
+        """
+        try:
+            if not frame_sequences or not frame_sequences[0]:
+                return []
+            
+            grid_x, grid_y = grid_size
+            total_positions = grid_x * grid_y
+            
+            # Initialize position sequences
+            position_sequences = [[] for _ in range(total_positions)]
+            
+            # Reorganize frames by position
+            for frame_cells in frame_sequences:
+                for pos_idx, cell in enumerate(frame_cells):
+                    if pos_idx < total_positions:
+                        position_sequences[pos_idx].append(cell)
+            
+            logger.info(f"Organized {len(frame_sequences)} frames into {len(position_sequences)} position sequences")
+            return position_sequences
+            
+        except Exception as e:
+            logger.error(f"Failed to organize frames by position: {e}")
+            return []

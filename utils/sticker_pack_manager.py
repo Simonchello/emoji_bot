@@ -66,7 +66,7 @@ class StickerPackManager:
         safe_name = safe_filename(user_name)
         
         if pack_type == "video":
-            return f"{safe_name}'s Video Emojis ({grid_x}×{grid_y})"
+            return f"{safe_name}'s Animated Emojis ({grid_x}×{grid_y})"
         else:
             return f"{safe_name}'s Emoji Pack ({grid_x}×{grid_y})"
     
@@ -76,7 +76,8 @@ class StickerPackManager:
         user_name: str,
         emoji_files: List[Path],
         grid_size: tuple,
-        pack_type: str = "emoji"
+        pack_type: str = "emoji",
+        animated: bool = False
     ) -> Dict[str, Any]:
         """
         Create a new Telegram sticker pack
@@ -87,6 +88,7 @@ class StickerPackManager:
             emoji_files: List of emoji file paths
             grid_size: (width, height) of the grid
             pack_type: Type of pack
+            animated: Whether to create animated emoji pack
             
         Returns:
             Dict with pack info including link
@@ -110,19 +112,33 @@ class StickerPackManager:
                     logger.warning(f"Emoji file not found: {file_path}")
                     continue
                 
-                # Optimize file for Telegram
-                file_content = self._optimize_image_for_telegram(file_path)
-                
-                # Create input file
-                input_file = BufferedInputFile(
-                    file_content,
-                    filename=f"emoji_{i+1}.png"
-                )
+                # Determine format and optimize file
+                if animated and file_path.suffix.lower() == '.webm':
+                    # For animated WebM files
+                    with open(file_path, 'rb') as f:
+                        file_content = f.read()
+                    
+                    input_file = BufferedInputFile(
+                        file_content,
+                        filename=f"emoji_{i+1}.webm"
+                    )
+                    
+                    sticker_format = "video"
+                else:
+                    # For static PNG files  
+                    file_content = self._optimize_image_for_telegram(file_path)
+                    
+                    input_file = BufferedInputFile(
+                        file_content,
+                        filename=f"emoji_{i+1}.png"
+                    )
+                    
+                    sticker_format = "static"
                 
                 # Add to stickers list
                 sticker_data = {
                     "sticker": input_file,
-                    "format": "static",
+                    "format": sticker_format,
                     "emoji_list": [emoji_list[i % len(emoji_list)]]
                 }
                 stickers.append(sticker_data)
@@ -130,17 +146,27 @@ class StickerPackManager:
             if not stickers:
                 raise ProcessingError("No valid emoji files found")
             
-            # Create the custom emoji set
-            success = await self.bot.create_new_sticker_set(
-                user_id=user_id,
-                name=pack_name,
-                title=pack_title,
-                stickers=stickers,
-                sticker_type="custom_emoji"
-            )
+            # Use custom emoji for both static and animated emoji packs
+            sticker_type = "custom_emoji"
+            
+            try:
+                success = await self.bot.create_new_sticker_set(
+                    user_id=user_id,
+                    name=pack_name,
+                    title=pack_title,
+                    stickers=stickers,
+                    sticker_type=sticker_type
+                )
+            except TelegramAPIError as e:
+                logger.error(f"Failed to create custom emoji pack: {e}")
+                raise
             
             if success:
-                pack_link = f"https://t.me/addemoji/{pack_name}"
+                # Use appropriate link based on sticker type
+                if sticker_type == "custom_emoji":
+                    pack_link = f"https://t.me/addemoji/{pack_name}"
+                else:
+                    pack_link = f"https://t.me/addstickers/{pack_name}"
                 
                 result = {
                     "success": True,
@@ -148,7 +174,8 @@ class StickerPackManager:
                     "pack_title": pack_title,
                     "pack_link": pack_link,
                     "sticker_count": len(stickers),
-                    "grid_size": grid_size
+                    "grid_size": grid_size,
+                    "pack_type": sticker_type
                 }
                 
                 logger.info(f"Successfully created sticker pack: {pack_link}")
@@ -376,6 +403,51 @@ class StickerPackManager:
             # Fallback: read original file
             with open(image_path, 'rb') as f:
                 return f.read()
+    
+    def _resize_webm_for_stickers(self, webm_path: Path) -> bytes:
+        """
+        Resize WebM from 100x100 (emoji) to 512x512 (stickers) 
+        
+        Args:
+            webm_path: Path to 100x100 WebM file
+            
+        Returns:
+            Resized WebM file content as bytes
+        """
+        try:
+            import subprocess
+            import tempfile
+            
+            with tempfile.NamedTemporaryFile(suffix='.webm') as temp_file:
+                temp_path = temp_file.name
+                
+                # Use ffmpeg to resize WebM from 100x100 to 512x512
+                cmd = [
+                    'ffmpeg', '-y',
+                    '-i', str(webm_path),
+                    '-vf', 'scale=512:512:flags=lanczos',
+                    '-c:v', 'libvpx',  # Use VP8 for compatibility
+                    '-b:v', '256k',
+                    '-crf', '30', 
+                    '-g', '15',
+                    '-auto-alt-ref', '0',
+                    temp_path
+                ]
+                
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                
+                if result.returncode == 0:
+                    with open(temp_path, 'rb') as f:
+                        content = f.read()
+                    logger.info(f"Resized WebM to 512x512: {len(content)} bytes")
+                    return content
+                else:
+                    logger.error(f"WebM resize failed: {result.stderr}")
+                    return None
+                    
+        except Exception as e:
+            logger.error(f"Failed to resize WebM for stickers: {e}")
+            return None
     
     def generate_pack_link(self, pack_name: str) -> str:
         """
