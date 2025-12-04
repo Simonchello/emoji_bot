@@ -1,111 +1,82 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
-def get_settings_keyboard() -> InlineKeyboardMarkup:
-    """Get main settings keyboard"""
+def get_settings_keyboard(is_video: bool = False) -> InlineKeyboardMarkup:
+    """Get main settings keyboard - simplified version"""
     keyboard = [
         [
             InlineKeyboardButton(text="📐 Grid Size", callback_data="set_grid_size"),
             InlineKeyboardButton(text="🔄 Adaptation", callback_data="set_adaptation")
         ],
         [
-            InlineKeyboardButton(text="🎨 Quality", callback_data="set_quality"),
-            InlineKeyboardButton(text="🔍 Background", callback_data="set_background")
-        ],
-        [
-            InlineKeyboardButton(text="📊 Statistics", callback_data="show_stats"),
             InlineKeyboardButton(text="🆘 Help", callback_data="show_help")
         ],
         [
-            InlineKeyboardButton(text="🔄 Reset All", callback_data="reset_settings"),
-            InlineKeyboardButton(text="📋 Export Settings", callback_data="export_settings")
-        ],
-        [
-            InlineKeyboardButton(text="🔙 Back", callback_data="back_to_main"),
-            InlineKeyboardButton(text="❌ Close", callback_data="cancel")
+            InlineKeyboardButton(text="✅ Done - Process", callback_data="start_processing")
         ]
     ]
-    
+
+    if is_video:
+        keyboard.insert(-1, [
+            InlineKeyboardButton(text="🎬 Create Animated", callback_data="create_animated")
+        ])
+
+    keyboard.append([
+        InlineKeyboardButton(text="❌ Cancel", callback_data="cancel")
+    ])
+
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
-def get_quality_settings_keyboard() -> InlineKeyboardMarkup:
-    """Get quality settings keyboard"""
+def get_grid_selection_keyboard() -> InlineKeyboardMarkup:
+    """Get grid size selection keyboard"""
     keyboard = [
         [
-            InlineKeyboardButton(text="🔴 High Quality", callback_data="quality_high"),
+            InlineKeyboardButton(text="1×3 📏", callback_data="grid_1_3"),
+            InlineKeyboardButton(text="3×1 📐", callback_data="grid_3_1")
         ],
         [
-            InlineKeyboardButton(text="🟡 Medium Quality", callback_data="quality_medium"),
+            InlineKeyboardButton(text="2×2 ⬜", callback_data="grid_2_2"),
+            InlineKeyboardButton(text="3×3 ⬛", callback_data="grid_3_3")
         ],
         [
-            InlineKeyboardButton(text="🟢 Low Quality (Fast)", callback_data="quality_low"),
+            InlineKeyboardButton(text="2×5 ↔️", callback_data="grid_2_5"),
+            InlineKeyboardButton(text="5×2 ↕️", callback_data="grid_5_2")
         ],
         [
-            InlineKeyboardButton(text="ℹ️ Quality Info", callback_data="quality_info"),
+            InlineKeyboardButton(text="4×4 🔲", callback_data="grid_4_4"),
+            InlineKeyboardButton(text="🔧 Custom", callback_data="grid_custom")
         ],
         [
-            InlineKeyboardButton(text="🔙 Back", callback_data="settings"),
-            InlineKeyboardButton(text="❌ Cancel", callback_data="cancel")
+            InlineKeyboardButton(text="🔙 Back", callback_data="back_to_settings")
         ]
     ]
-    
+
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
-def get_background_settings_keyboard() -> InlineKeyboardMarkup:
-    """Get background settings keyboard"""
+def get_adaptation_keyboard() -> InlineKeyboardMarkup:
+    """Get adaptation method selection keyboard"""
     keyboard = [
         [
-            InlineKeyboardButton(text="🖼️ Keep Original", callback_data="bg_keep"),
+            InlineKeyboardButton(text="📏 Pad (Keep All)", callback_data="adapt_pad"),
         ],
         [
-            InlineKeyboardButton(text="⚪ Remove White", callback_data="bg_remove_white"),
+            InlineKeyboardButton(text="↔️ Stretch (Distort)", callback_data="adapt_stretch"),
         ],
         [
-            InlineKeyboardButton(text="⚫ Remove Black", callback_data="bg_remove_black"),
+            InlineKeyboardButton(text="✂️ Crop (Cut Edges)", callback_data="adapt_crop"),
         ],
         [
-            InlineKeyboardButton(text="🔍 Smart Removal", callback_data="bg_remove_smart"),
-        ],
-        [
-            InlineKeyboardButton(text="ℹ️ Background Info", callback_data="bg_info"),
-        ],
-        [
-            InlineKeyboardButton(text="🔙 Back", callback_data="settings"),
-            InlineKeyboardButton(text="❌ Cancel", callback_data="cancel")
+            InlineKeyboardButton(text="🔙 Back", callback_data="back_to_settings")
         ]
     ]
-    
-    return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-
-def get_statistics_keyboard() -> InlineKeyboardMarkup:
-    """Get statistics keyboard"""
-    keyboard = [
-        [
-            InlineKeyboardButton(text="📈 Usage Stats", callback_data="stats_usage"),
-            InlineKeyboardButton(text="💾 Cache Stats", callback_data="stats_cache")
-        ],
-        [
-            InlineKeyboardButton(text="🔄 Processing History", callback_data="stats_history"),
-            InlineKeyboardButton(text="⏱️ Performance", callback_data="stats_performance")
-        ],
-        [
-            InlineKeyboardButton(text="🗑️ Clear History", callback_data="clear_history"),
-            InlineKeyboardButton(text="🧹 Clean Cache", callback_data="clean_cache")
-        ],
-        [
-            InlineKeyboardButton(text="🔙 Back", callback_data="settings"),
-            InlineKeyboardButton(text="❌ Close", callback_data="cancel")
-        ]
-    ]
-    
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
 def get_help_keyboard() -> InlineKeyboardMarkup:
-    """Get help keyboard"""
+    """Get help keyboard - simplified"""
     keyboard = [
         [
             InlineKeyboardButton(text="🚀 Quick Start", callback_data="help_quickstart"),
@@ -113,20 +84,14 @@ def get_help_keyboard() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text="🔄 Adaptation Guide", callback_data="help_adaptation"),
-            InlineKeyboardButton(text="🎨 Quality Guide", callback_data="help_quality")
+            InlineKeyboardButton(text="💡 Tips", callback_data="help_tips")
         ],
         [
-            InlineKeyboardButton(text="💡 Tips & Tricks", callback_data="help_tips"),
             InlineKeyboardButton(text="❓ FAQ", callback_data="help_faq")
         ],
         [
-            InlineKeyboardButton(text="📋 Examples", callback_data="help_examples"),
-            InlineKeyboardButton(text="🐛 Report Bug", callback_data="help_bug")
-        ],
-        [
-            InlineKeyboardButton(text="🔙 Back", callback_data="settings"),
-            InlineKeyboardButton(text="❌ Close", callback_data="cancel")
+            InlineKeyboardButton(text="🔙 Back", callback_data="back_to_settings")
         ]
     ]
-    
+
     return InlineKeyboardMarkup(inline_keyboard=keyboard)

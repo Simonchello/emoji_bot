@@ -1,3 +1,2 @@
-from .main_menu import get_main_menu, get_processing_menu
-
-__all__ = ["get_main_menu", "get_processing_menu"]
+# Default keyboards are no longer used - we use inline keyboards exclusively
+__all__ = []
