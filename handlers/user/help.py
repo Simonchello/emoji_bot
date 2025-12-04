@@ -3,7 +3,7 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 
-from keyboards import get_help_keyboard, get_main_menu
+from keyboards import get_help_keyboard
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -14,42 +14,39 @@ router = Router()
 async def help_command(message: Message):
     """Handle /help command"""
     help_text = """
-🆘 **Emoji Pack Bot Help**
+🆘 <b>Emoji Pack Bot Help</b>
 
-**How to Use:**
-1. Choose grid size (how many emojis to create)
-2. Select adaptation method (how to fit your image)
-3. Send image or video
+<b>How to Use:</b>
+1. Send an image or video
+2. Adjust grid size and adaptation settings
+3. Click "Done" to process
 4. Get your emoji pack!
 
-**Grid Sizes:**
-• `1×3` - Timeline/progress bars
-• `3×1` - Tall subjects/portraits  
-• `2×2` - Basic 4-emoji pack
-• `3×3` - Classic 9-emoji pack
-• `2×5` - Wide scenes/landscapes
+<b>Grid Sizes:</b>
+• <code>1×3</code> - Timeline/progress bars
+• <code>3×1</code> - Tall subjects/portraits
+• <code>2×2</code> - Basic 4-emoji pack
+• <code>3×3</code> - Classic 9-emoji pack
+• <code>2×5</code> - Wide scenes/landscapes
 • Custom - Any size up to 8×8
 
-**Adaptation Methods:**
-• `Pad` - Adds borders, keeps everything ✅
-• `Stretch` - Changes proportions 
-• `Crop` - Cuts edges, focuses center
+<b>Adaptation Methods:</b>
+• <code>Pad</code> - Adds borders, keeps everything
+• <code>Stretch</code> - Changes proportions
+• <code>Crop</code> - Cuts edges, focuses center
 
-**Commands:**
+<b>Commands:</b>
 /start - Start the bot
 /help - Show this help
-/setgrid X Y - Set grid size directly
-/adapt method - Set adaptation method
 /settings - Open settings menu
-/cancel - Cancel current operation
 
-Need more specific help? Use the buttons below! 👇
+Need more help? Use the buttons below!
 """
-    
+
     await message.answer(
         help_text,
         reply_markup=get_help_keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 
@@ -57,29 +54,28 @@ Need more specific help? Use the buttons below! 👇
 async def help_quickstart(callback: CallbackQuery):
     """Quick start guide"""
     text = """
-🚀 **Quick Start Guide**
+🚀 <b>Quick Start Guide</b>
 
-**Step 1: Choose Grid Size**
-• For beginners: Try 2×2 or 3×3
-• For timelines: Use 1×3 
-• For portraits: Use 3×1
+<b>Step 1: Send Media</b>
+• Just send an image or video to the bot
+• Supported: JPG, PNG, WebP, MP4, MOV
 
-**Step 2: Pick Adaptation**
-• New users: Use "Pad" (recommended)
-• Advanced: Try "Stretch" or "Crop"
+<b>Step 2: Choose Settings</b>
+• Grid Size: How many emojis to create
+• Adaptation: How to fit your image
 
-**Step 3: Send Media**
-• Images: JPG, PNG, WebP (up to 50MB)
-• Videos: MP4, AVI, MOV (up to 5 minutes)
+<b>Step 3: Process</b>
+• Click "Done - Process Image"
+• Wait for processing to complete
 
-**Step 4: Get Results**
-• Download ZIP file
-• Or send directly to Telegram
+<b>Step 4: Get Results</b>
+• Add the emoji pack to Telegram
+• Or download as ZIP file
 
-**Pro Tip:** Start with a square image (1:1 ratio) for best results!
+<b>Pro Tip:</b> Start with a 2×2 grid and "Pad" adaptation for best results!
 """
-    
-    await callback.message.edit_text(text, reply_markup=get_help_keyboard(), parse_mode="Markdown")
+
+    await callback.message.edit_text(text, reply_markup=get_help_keyboard(), parse_mode="HTML")
     await callback.answer()
 
 
@@ -87,32 +83,31 @@ async def help_quickstart(callback: CallbackQuery):
 async def help_grid(callback: CallbackQuery):
     """Grid size guide"""
     text = """
-📐 **Grid Size Guide**
+📐 <b>Grid Size Guide</b>
 
-**Common Sizes:**
-• `1×3` - Perfect for progress bars, timelines
-• `3×1` - Great for tall objects, portraits
-• `2×2` - Simple 4-piece puzzles
-• `3×3` - Classic grid, most versatile
-• `4×4` - Detailed images, 16 emojis
+<b>Common Sizes:</b>
+• <code>1×3</code> - Perfect for progress bars, timelines
+• <code>3×1</code> - Great for tall objects, portraits
+• <code>2×2</code> - Simple 4-piece puzzles
+• <code>3×3</code> - Classic grid, most versatile
+• <code>4×4</code> - Detailed images, 16 emojis
 
-**Custom Sizes:**
+<b>Custom Sizes:</b>
 • Any combination from 1×1 to 8×8
 • Examples: 1×5, 2×7, 6×2, etc.
 
-**Choosing the Right Size:**
+<b>Choosing the Right Size:</b>
 • More cells = more detail
 • Fewer cells = simpler, clearer emojis
 • Match your image's aspect ratio
 
-**Tips:**
+<b>Tips:</b>
 • Wide images → Use 1×X or 2×X grids
-• Tall images → Use X×1 or X×2 grids  
+• Tall images → Use X×1 or X×2 grids
 • Square images → Use X×X grids
-• Complex images → Use larger grids (4×4+)
 """
-    
-    await callback.message.edit_text(text, reply_markup=get_help_keyboard(), parse_mode="Markdown")
+
+    await callback.message.edit_text(text, reply_markup=get_help_keyboard(), parse_mode="HTML")
     await callback.answer()
 
 
@@ -120,35 +115,35 @@ async def help_grid(callback: CallbackQuery):
 async def help_adaptation(callback: CallbackQuery):
     """Adaptation method guide"""
     text = """
-🔄 **Adaptation Method Guide**
+🔄 <b>Adaptation Method Guide</b>
 
-**Pad (Recommended) 📏**
+<b>Pad (Recommended) 📏</b>
 • Adds white borders to fit grid ratio
 • Keeps all original content
 • Best for: Most images, beginners
 • Result: No distortion, complete image
 
-**Stretch ↔️**
-• Changes image proportions 
+<b>Stretch ↔️</b>
+• Changes image proportions
 • Fits exactly to grid ratio
 • Best for: Abstract images, patterns
 • Result: May look distorted
 
-**Crop ✂️**  
+<b>Crop ✂️</b>
 • Cuts edges to fit grid ratio
 • Focuses on center content
 • Best for: Images with important centers
 • Result: May lose edge content
 
-**When to Use What:**
+<b>When to Use What:</b>
 • Portrait photo → Pad or Crop
 • Landscape photo → Pad
 • Logo/text → Pad
 • Pattern/texture → Stretch
 • Face/person → Crop (focuses on face)
 """
-    
-    await callback.message.edit_text(text, reply_markup=get_help_keyboard(), parse_mode="Markdown")
+
+    await callback.message.edit_text(text, reply_markup=get_help_keyboard(), parse_mode="HTML")
     await callback.answer()
 
 
@@ -156,40 +151,34 @@ async def help_adaptation(callback: CallbackQuery):
 async def help_tips(callback: CallbackQuery):
     """Tips and tricks"""
     text = """
-💡 **Tips & Tricks**
+💡 <b>Tips & Tricks</b>
 
-**Image Quality:**
+<b>Image Quality:</b>
 • Use high-resolution images (1000×1000+)
 • Avoid very blurry or dark images
 • PNG files preserve quality better
 
-**Grid Selection:**
+<b>Grid Selection:</b>
 • Start small (2×2) for testing
-• Match image orientation (wide=1×X, tall=X×1)
+• Match image orientation
 • More cells = longer processing time
 
-**Adaptation Tips:**
+<b>Adaptation Tips:</b>
 • Use Pad for text/logos (keeps readability)
 • Use Crop for faces (centers on subject)
-• Preview before processing!
 
-**Video Processing:**
+<b>Video Processing:</b> ⚠️ <i>BETA</i>
 • Keep videos under 2 minutes for best results
 • Good lighting improves frame quality
 • Bot automatically picks best frames
 
-**Performance:**
-• Process during off-peak hours
-• Use "Fast Mode" for quick tests
-• Clean cache regularly for better speed
-
-**Telegram Stickers:**
+<b>Telegram Stickers:</b>
 • Each emoji is 512×512 pixels
 • PNG format with transparency
 • Perfect for Telegram sticker packs!
 """
-    
-    await callback.message.edit_text(text, reply_markup=get_help_keyboard(), parse_mode="Markdown")
+
+    await callback.message.edit_text(text, reply_markup=get_help_keyboard(), parse_mode="HTML")
     await callback.answer()
 
 
@@ -197,38 +186,33 @@ async def help_tips(callback: CallbackQuery):
 async def help_faq(callback: CallbackQuery):
     """Frequently asked questions"""
     text = """
-❓ **Frequently Asked Questions**
+❓ <b>Frequently Asked Questions</b>
 
-**Q: What file formats are supported?**
-A: Images: JPG, PNG, WebP, BMP, TIFF
-   Videos: MP4, AVI, MOV, WebM, MKV
+<b>Q: What file formats are supported?</b>
+A: Images: JPG, PNG, WebP, BMP
+   Videos: MP4, AVI, MOV, WebM
 
-**Q: What's the maximum file size?**
-A: 50MB for images, same for videos up to 5 minutes
+<b>Q: What's the maximum file size?</b>
+A: 50MB for images and videos
 
-**Q: How long does processing take?**  
-A: Usually 10-60 seconds depending on size and grid
+<b>Q: How long does processing take?</b>
+A: Usually 10-60 seconds depending on size
 
-**Q: Can I use the emojis commercially?**
+<b>Q: Can I use the emojis commercially?</b>
 A: Yes, but ensure you have rights to original image
 
-**Q: Why is my image blurry?**
+<b>Q: Why is my image blurry?</b>
 A: Try higher resolution input or smaller grid size
 
-**Q: Bot not responding?**
-A: Try /cancel then /start to reset
+<b>Q: Bot not responding?</b>
+A: Try /start to reset
 
-**Q: Can I process multiple images?**
-A: Process one at a time for best results
+<b>Q: How to create animated emojis?</b>
+A: Send a video - bot extracts frames automatically ⚠️ <i>BETA</i>
 
-**Q: How to create animated emojis?**
-A: Send a video - bot extracts frames automatically
-
-**Q: Where are my files stored?**
+<b>Q: Where are my files stored?</b>
 A: Temporarily cached, auto-deleted after 1 hour
-
-**Still need help?** Contact support!
 """
-    
-    await callback.message.edit_text(text, reply_markup=get_help_keyboard(), parse_mode="Markdown")
+
+    await callback.message.edit_text(text, reply_markup=get_help_keyboard(), parse_mode="HTML")
     await callback.answer()
