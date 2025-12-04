@@ -15,15 +15,23 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-def get_settings_text(user_id: int) -> str:
+def get_settings_text(user_id: int, is_media_uploaded: bool = False, media_type: str = None) -> str:
     """Generate settings text for a user"""
     settings = user_settings.get(user_id)
     if not settings:
         return "No settings configured yet."
 
     method_names = {"pad": "Pad (Keep All)", "stretch": "Stretch", "crop": "Crop"}
+
+    if is_media_uploaded:
+        media_icon = "🎥" if media_type == "video" else "🖼️"
+        beta_text = "\n⚠️ <i>Video processing is in BETA mode</i>" if media_type == "video" else ""
+        header = f"{media_icon} <b>Media Received!</b>{beta_text}"
+    else:
+        header = "⚙️ <b>Settings</b>"
+
     return f"""
-⚙️ <b>Configure Your Settings</b>
+{header}
 
 <b>Current Settings:</b>
 • Grid Size: {settings.grid_x}×{settings.grid_y}
@@ -31,13 +39,26 @@ def get_settings_text(user_id: int) -> str:
 
 <b>Total emojis:</b> {settings.grid_x * settings.grid_y}
 
-Adjust the settings below, then click "Done" to process your image.
+{"Adjust settings if needed, then click 'Done' to process." if is_media_uploaded else "Configure your settings, then send an image or video."}
 """
+
+
+async def get_state_info(state: FSMContext):
+    """Get current state info to determine if media is uploaded"""
+    current_state = await state.get_state()
+    data = await state.get_data()
+    # Check if media is uploaded - either by state or by presence of file_id in data
+    is_media_uploaded = (
+        current_state == UserStates.confirming_processing.state or
+        data.get("file_id") is not None
+    )
+    media_type = data.get("media_type") if is_media_uploaded else None
+    return is_media_uploaded, media_type
 
 
 @router.message(Command("settings"))
 @router.message(F.text == "⚙️ Settings")
-async def settings_command(message: Message):
+async def settings_command(message: Message, state: FSMContext):
     """Handle /settings command"""
     user_id = message.from_user.id
 
@@ -45,9 +66,11 @@ async def settings_command(message: Message):
         from models import UserSettings
         user_settings[user_id] = UserSettings(user_id=user_id)
 
+    is_media_uploaded, media_type = await get_state_info(state)
+
     await message.answer(
-        get_settings_text(user_id),
-        reply_markup=get_settings_keyboard(),
+        get_settings_text(user_id, is_media_uploaded, media_type),
+        reply_markup=get_settings_keyboard(is_video=(media_type == "video")),
         parse_mode="HTML"
     )
 
@@ -61,9 +84,11 @@ async def settings_menu(callback: CallbackQuery, state: FSMContext):
         from models import UserSettings
         user_settings[user_id] = UserSettings(user_id=user_id)
 
+    is_media_uploaded, media_type = await get_state_info(state)
+
     await callback.message.edit_text(
-        get_settings_text(user_id),
-        reply_markup=get_settings_keyboard(),
+        get_settings_text(user_id, is_media_uploaded, media_type),
+        reply_markup=get_settings_keyboard(is_video=(media_type == "video")),
         parse_mode="HTML"
     )
     await callback.answer()
@@ -74,16 +99,18 @@ async def back_to_settings(callback: CallbackQuery, state: FSMContext):
     """Go back to settings menu"""
     user_id = callback.from_user.id
 
+    is_media_uploaded, media_type = await get_state_info(state)
+
     await callback.message.edit_text(
-        get_settings_text(user_id),
-        reply_markup=get_settings_keyboard(),
+        get_settings_text(user_id, is_media_uploaded, media_type),
+        reply_markup=get_settings_keyboard(is_video=(media_type == "video")),
         parse_mode="HTML"
     )
     await callback.answer()
 
 
 @router.callback_query(F.data == "set_grid_size")
-async def set_grid_size(callback: CallbackQuery):
+async def set_grid_size(callback: CallbackQuery, state: FSMContext):
     """Handle grid size setting"""
     user_id = callback.from_user.id
     settings = user_settings.get(user_id)
@@ -107,7 +134,7 @@ Choose a grid size or select "Custom" to enter your own:
 
 
 @router.callback_query(F.data == "set_adaptation")
-async def set_adaptation(callback: CallbackQuery):
+async def set_adaptation(callback: CallbackQuery, state: FSMContext):
     """Handle adaptation method setting"""
     user_id = callback.from_user.id
     settings = user_settings.get(user_id)
@@ -164,8 +191,16 @@ async def handle_grid_selection(callback: CallbackQuery, state: FSMContext):
 
     data = callback.data
 
+    # Get state info to preserve it
+    is_media_uploaded, media_type = await get_state_info(state)
+
     if data == "grid_custom":
+        # Store current state info before changing state
+        state_data = await state.get_data()
         await state.set_state(UserStates.setting_grid_size_x)
+        # Preserve the media data
+        await state.update_data(**state_data)
+
         await callback.message.edit_text(
             "🔧 <b>Custom Grid Size</b>\n\nPlease send your custom grid size in format: <code>X Y</code>\nExample: <code>4 3</code> for 4×3 grid\n\n(Values must be between 1 and 8)",
             parse_mode="HTML"
@@ -184,8 +219,8 @@ async def handle_grid_selection(callback: CallbackQuery, state: FSMContext):
             user_settings[user_id].grid_y = grid_y
 
             await callback.message.edit_text(
-                get_settings_text(user_id),
-                reply_markup=get_settings_keyboard(),
+                get_settings_text(user_id, is_media_uploaded, media_type),
+                reply_markup=get_settings_keyboard(is_video=(media_type == "video")),
                 parse_mode="HTML"
             )
             await callback.answer(f"Grid size set to {grid_x}×{grid_y}")
@@ -196,7 +231,7 @@ async def handle_grid_selection(callback: CallbackQuery, state: FSMContext):
 
 # Adaptation method handlers
 @router.callback_query(F.data.startswith("adapt_"))
-async def handle_adaptation_selection(callback: CallbackQuery):
+async def handle_adaptation_selection(callback: CallbackQuery, state: FSMContext):
     """Handle adaptation method selection"""
     user_id = callback.from_user.id
 
@@ -210,9 +245,11 @@ async def handle_adaptation_selection(callback: CallbackQuery):
     method_names = {"pad": "Pad", "stretch": "Stretch", "crop": "Crop"}
     method_name = method_names.get(method, method)
 
+    is_media_uploaded, media_type = await get_state_info(state)
+
     await callback.message.edit_text(
-        get_settings_text(user_id),
-        reply_markup=get_settings_keyboard(),
+        get_settings_text(user_id, is_media_uploaded, media_type),
+        reply_markup=get_settings_keyboard(is_video=(media_type == "video")),
         parse_mode="HTML"
     )
     await callback.answer(f"Adaptation set to {method_name}")
@@ -260,10 +297,20 @@ async def handle_custom_grid_input(message: Message, state: FSMContext):
         user_settings[user_id].grid_x = grid_x
         user_settings[user_id].grid_y = grid_y
 
-        await state.clear()
+        # Check if there was media uploaded before
+        data = await state.get_data()
+        has_media = data.get("file_id") is not None
+        media_type = data.get("media_type")
+
+        if has_media:
+            # Restore confirming_processing state
+            await state.set_state(UserStates.confirming_processing)
+        else:
+            await state.clear()
+
         await message.answer(
-            get_settings_text(user_id),
-            reply_markup=get_settings_keyboard(),
+            get_settings_text(user_id, has_media, media_type),
+            reply_markup=get_settings_keyboard(is_video=(media_type == "video")),
             parse_mode="HTML"
         )
 
