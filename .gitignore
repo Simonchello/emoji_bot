@@ -53,9 +53,16 @@ Thumbs.db
 
 # Cache and temporary files
 data/cache/
+data/*.db
 *.tmp
 *.temp
 *.log
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+bot_database.db
 
 # Testing
 .pytest_cache/
@@ -74,6 +81,11 @@ logs/
 uploads/
 downloads/
 temp/
+bot.log
+
+# Private data - NEVER commit these
+data/bot_database.db
+data/
 
 # Lock files
 uv.lock

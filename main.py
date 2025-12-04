@@ -2,7 +2,7 @@
 """
 Telegram Emoji Pack Bot - Main Entry Point
 
-A Telegram bot that converts user-uploaded images and videos into custom emoji packs 
+A Telegram bot that converts user-uploaded images and videos into custom emoji packs
 with configurable grid dimensions using Python, OpenCV, and NumPy.
 """
 
