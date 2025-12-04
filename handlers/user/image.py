@@ -15,6 +15,7 @@ from utils import (
 )
 from exceptions import ImageProcessingError, FileSizeError, FileFormatError
 from config import load_config, CACHE_DIR
+from database import db
 from .start import user_settings
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,15 @@ Adjust settings if needed, then click "Done" to start processing.
 async def handle_image_upload(message: Message, state: FSMContext, bot: Bot):
     """Handle image upload for processing"""
     user_id = message.from_user.id
+
+    # Track user activity
+    db.upsert_user(
+        user_id=user_id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+        last_name=message.from_user.last_name
+    )
+    db.log_activity(user_id, "image_upload")
 
     # Initialize user settings if not exists
     if user_id not in user_settings:
@@ -223,6 +233,9 @@ You can still download the ZIP file with your emojis below.
             local_path.unlink()
         except:
             pass
+
+        # Log stickers created to database
+        db.log_activity(user_id, "stickers_created", len(saved_files))
 
         logger.info(f"Successfully processed image for user {user_id}: {len(saved_files)} emojis")
 

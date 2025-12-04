@@ -4,6 +4,7 @@ from aiogram.types import Message
 from aiogram.filters import CommandStart
 
 from models import UserSettings
+from database import db
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -17,6 +18,15 @@ async def start_command(message: Message):
     """Handle /start command"""
     user_id = message.from_user.id
     user_name = message.from_user.first_name or "User"
+
+    # Track user in database
+    db.upsert_user(
+        user_id=user_id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+        last_name=message.from_user.last_name
+    )
+    db.log_activity(user_id, "start")
 
     # Initialize user settings if not exists
     if user_id not in user_settings:

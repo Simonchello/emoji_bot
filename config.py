@@ -7,6 +7,7 @@ from typing import Optional
 @dataclass
 class BotConfig:
     telegram_bot_token: str
+    admin_user_id: int = 0
     max_grid_size: int = 8
     min_grid_size: int = 2
     max_file_size_mb: int = 50
@@ -32,6 +33,7 @@ def load_config() -> BotConfig:
     
     return BotConfig(
         telegram_bot_token=telegram_bot_token,
+        admin_user_id=int(os.getenv("ADMIN_USER_ID", "0")),
         max_grid_size=int(os.getenv("MAX_GRID_SIZE", "8")),
         min_grid_size=int(os.getenv("MIN_GRID_SIZE", "2")),
         max_file_size_mb=int(os.getenv("MAX_FILE_SIZE_MB", "50")),
