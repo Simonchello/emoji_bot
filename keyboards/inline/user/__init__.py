@@ -7,6 +7,7 @@ from .settings import (
     get_settings_keyboard,
     get_grid_selection_keyboard,
     get_adaptation_keyboard,
+    get_background_keyboard,
     get_help_keyboard,
 )
 
@@ -17,5 +18,6 @@ __all__ = [
     "get_animation_options_keyboard",
     "get_settings_keyboard",
     "get_adaptation_keyboard",
+    "get_background_keyboard",
     "get_help_keyboard",
 ]

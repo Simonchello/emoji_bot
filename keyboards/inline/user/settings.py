@@ -2,11 +2,14 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
 def get_settings_keyboard(is_video: bool = False) -> InlineKeyboardMarkup:
-    """Get main settings keyboard - simplified version"""
+    """Get main settings keyboard"""
     keyboard = [
         [
             InlineKeyboardButton(text="📐 Grid Size", callback_data="set_grid_size"),
             InlineKeyboardButton(text="🔄 Adaptation", callback_data="set_adaptation")
+        ],
+        [
+            InlineKeyboardButton(text="🎨 Background", callback_data="set_background")
         ],
         [
             InlineKeyboardButton(text="🆘 Help", callback_data="show_help")
@@ -66,6 +69,29 @@ def get_adaptation_keyboard() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text="✂️ Crop (Cut Edges)", callback_data="adapt_crop"),
+        ],
+        [
+            InlineKeyboardButton(text="🔙 Back", callback_data="back_to_settings")
+        ]
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def get_background_keyboard() -> InlineKeyboardMarkup:
+    """Get background removal selection keyboard"""
+    keyboard = [
+        [
+            InlineKeyboardButton(text="🖼️ Keep Original", callback_data="bg_keep"),
+        ],
+        [
+            InlineKeyboardButton(text="⬜ Remove White BG", callback_data="bg_remove_white"),
+        ],
+        [
+            InlineKeyboardButton(text="⬛ Remove Black BG", callback_data="bg_remove_black"),
+        ],
+        [
+            InlineKeyboardButton(text="🪄 Smart Removal", callback_data="bg_remove_smart"),
         ],
         [
             InlineKeyboardButton(text="🔙 Back", callback_data="back_to_settings")

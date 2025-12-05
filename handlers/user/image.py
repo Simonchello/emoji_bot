@@ -151,6 +151,18 @@ async def start_image_processing(callback: CallbackQuery, state: FSMContext, bot
             adapted_image, settings.grid_x, settings.grid_y, progress_tracker
         )
 
+        # Apply background removal if enabled
+        if settings.background_mode != "keep":
+            progress_tracker.update(1, "Processing background...")
+            bg_method_map = {
+                "remove_white": "white",
+                "remove_black": "black",
+                "remove_smart": "smart"
+            }
+            bg_method = bg_method_map.get(settings.background_mode, "smart")
+            for i, cell in enumerate(emoji_cells):
+                emoji_cells[i] = emoji_generator.add_transparency(cell, method=bg_method)
+
         # Generate emoji pack
         pack_name = f"emoji_pack_{user_id}"
         output_dir = CACHE_DIR / f"user_{user_id}_output"
@@ -350,12 +362,23 @@ async def send_individual_stickers(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == "process_another")
 async def process_another_image(callback: CallbackQuery, state: FSMContext):
     """Process another image"""
+    logger.info(f"process_another called by user {callback.from_user.id}")
     await state.clear()
-    await callback.message.edit_text(
-        "🖼️ <b>Ready for another image!</b>\n\nSend me your next image or video to process.",
-        parse_mode="HTML"
-    )
-    await callback.answer()
+
+    try:
+        await callback.message.edit_text(
+            "🖼️ <b>Ready for another image!</b>\n\nSend me your next image or video to process.",
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        logger.warning(f"Failed to edit message: {e}")
+        # If edit fails, send a new message
+        await callback.message.answer(
+            "🖼️ <b>Ready for another image!</b>\n\nSend me your next image or video to process.",
+            parse_mode="HTML"
+        )
+
+    await callback.answer("Ready for next image!")
 
 
 @router.callback_query(F.data == "add_sticker_pack")

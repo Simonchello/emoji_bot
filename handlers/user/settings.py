@@ -6,13 +6,21 @@ from aiogram.fsm.context import FSMContext
 
 from keyboards import (
     get_settings_keyboard, get_grid_selection_keyboard, get_adaptation_keyboard,
-    get_help_keyboard
+    get_background_keyboard, get_help_keyboard
 )
 from states import UserStates
 from .start import user_settings
 
 logger = logging.getLogger(__name__)
 router = Router()
+
+# Background mode display names
+BG_MODE_NAMES = {
+    "keep": "Keep Original",
+    "remove_white": "Remove White",
+    "remove_black": "Remove Black",
+    "remove_smart": "Smart Removal"
+}
 
 
 def get_settings_text(user_id: int, is_media_uploaded: bool = False, media_type: str = None) -> str:
@@ -22,6 +30,7 @@ def get_settings_text(user_id: int, is_media_uploaded: bool = False, media_type:
         return "No settings configured yet."
 
     method_names = {"pad": "Pad (Keep All)", "stretch": "Stretch", "crop": "Crop"}
+    bg_name = BG_MODE_NAMES.get(settings.background_mode, settings.background_mode)
 
     if is_media_uploaded:
         media_icon = "🎥" if media_type == "video" else "🖼️"
@@ -36,6 +45,7 @@ def get_settings_text(user_id: int, is_media_uploaded: bool = False, media_type:
 <b>Current Settings:</b>
 • Grid Size: {settings.grid_x}×{settings.grid_y}
 • Adaptation: {method_names.get(settings.adaptation_method, settings.adaptation_method)}
+• Background: {bg_name}
 
 <b>Total emojis:</b> {settings.grid_x * settings.grid_y}
 
@@ -162,6 +172,36 @@ How should the image be adapted to fit the grid?
     await callback.answer()
 
 
+@router.callback_query(F.data == "set_background")
+async def set_background(callback: CallbackQuery, state: FSMContext):
+    """Handle background removal setting"""
+    user_id = callback.from_user.id
+    settings = user_settings.get(user_id)
+
+    current_mode = settings.background_mode if settings else "keep"
+    mode_name = BG_MODE_NAMES.get(current_mode, current_mode)
+
+    text = f"""
+🎨 <b>Background Removal</b>
+
+Current: <code>{mode_name}</code>
+
+Choose how to handle the background:
+
+• <b>Keep Original</b> - No changes to background
+• <b>Remove White</b> - Make white areas transparent
+• <b>Remove Black</b> - Make black areas transparent
+• <b>Smart Removal</b> - Auto-detect and remove background
+"""
+
+    await callback.message.edit_text(
+        text,
+        reply_markup=get_background_keyboard(),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+
 @router.callback_query(F.data == "show_help")
 async def show_help(callback: CallbackQuery):
     """Show help menu"""
@@ -253,6 +293,32 @@ async def handle_adaptation_selection(callback: CallbackQuery, state: FSMContext
         parse_mode="HTML"
     )
     await callback.answer(f"Adaptation set to {method_name}")
+
+
+# Background mode handlers
+@router.callback_query(F.data.startswith("bg_"))
+async def handle_background_selection(callback: CallbackQuery, state: FSMContext):
+    """Handle background mode selection"""
+    user_id = callback.from_user.id
+
+    if user_id not in user_settings:
+        from models import UserSettings
+        user_settings[user_id] = UserSettings(user_id=user_id)
+
+    # Parse mode from callback data (bg_keep, bg_remove_white, etc.)
+    mode = callback.data[3:]  # Remove "bg_" prefix
+    user_settings[user_id].background_mode = mode
+
+    mode_name = BG_MODE_NAMES.get(mode, mode)
+
+    is_media_uploaded, media_type = await get_state_info(state)
+
+    await callback.message.edit_text(
+        get_settings_text(user_id, is_media_uploaded, media_type),
+        reply_markup=get_settings_keyboard(is_video=(media_type == "video")),
+        parse_mode="HTML"
+    )
+    await callback.answer(f"Background set to {mode_name}")
 
 
 # Handler for "Done - Process" when no image is uploaded
