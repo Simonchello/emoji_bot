@@ -64,11 +64,12 @@ class StickerPackManager:
         """
         grid_x, grid_y = grid_size
         safe_name = safe_filename(user_name)
-        
+        bot_tag = "@media_to_emoji_bot"
+
         if pack_type == "video":
-            return f"{safe_name}'s Animated Emojis ({grid_x}×{grid_y})"
+            return f"{safe_name}'s Animated Emojis ({grid_x}×{grid_y}) {bot_tag}"
         else:
-            return f"{safe_name}'s Emoji Pack ({grid_x}×{grid_y})"
+            return f"{safe_name}'s Emoji Pack ({grid_x}×{grid_y}) {bot_tag}"
     
     async def create_sticker_pack(
         self,
