@@ -238,7 +238,8 @@ You can still download the ZIP file with your emojis below.
         )
 
         # Send first few emojis as preview
-        await send_emoji_preview(callback.message, saved_files[:4])
+        # Preview disabled by default - uncomment to enable
+        # await send_emoji_preview(callback.message, saved_files[:4])
 
         # Clean up original file
         try:

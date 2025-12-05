@@ -291,10 +291,10 @@ You can still download the ZIP file with all your emojis below.
             parse_mode="HTML"
         )
 
-        # Send preview of first frame emojis
-        if frame_sequences:
-            first_frame_files = all_emoji_files[:settings.grid_x * settings.grid_y]
-            await send_video_emoji_preview(callback.message, first_frame_files, frame_idx=1)
+        # Preview disabled by default - uncomment to enable
+        # if frame_sequences:
+        #     first_frame_files = all_emoji_files[:settings.grid_x * settings.grid_y]
+        #     await send_video_emoji_preview(callback.message, first_frame_files, frame_idx=1)
 
         # Clean up original file
         try:
@@ -648,9 +648,9 @@ You can still download the ZIP file with your animated emojis below.
             parse_mode="HTML"
         )
 
-        # Send preview of first few animated emojis
-        if animated_files:
-            await send_animated_emoji_preview(callback.message, animated_files[:3])
+        # Preview disabled by default - uncomment to enable
+        # if animated_files:
+        #     await send_animated_emoji_preview(callback.message, animated_files[:3])
 
         # Clean up original file
         try:
