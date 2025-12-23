@@ -362,22 +362,15 @@ async def send_individual_stickers(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "process_another")
 async def process_another_image(callback: CallbackQuery, state: FSMContext):
-    """Process another image"""
+    """Process another image - sends new message to preserve sticker pack link"""
     logger.info(f"process_another called by user {callback.from_user.id}")
     await state.clear()
 
-    try:
-        await callback.message.edit_text(
-            "🖼️ <b>Ready for another image!</b>\n\nSend me your next image or video to process.",
-            parse_mode="HTML"
-        )
-    except Exception as e:
-        logger.warning(f"Failed to edit message: {e}")
-        # If edit fails, send a new message
-        await callback.message.answer(
-            "🖼️ <b>Ready for another image!</b>\n\nSend me your next image or video to process.",
-            parse_mode="HTML"
-        )
+    # Send a new message instead of editing, so user can return to the sticker pack link
+    await callback.message.answer(
+        "🖼️ <b>Ready for another image!</b>\n\nSend me your next image or video to process.",
+        parse_mode="HTML"
+    )
 
     await callback.answer("Ready for next image!")
 
